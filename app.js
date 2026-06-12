@@ -38,7 +38,13 @@ async function init() {
 
 async function loadCatalog() {
   try {
-    const response = await fetch("data/catalogo.json", { cache: "no-store" });
+    let response = await fetch("data/catalogo.json", { cache: "no-store" });
+    if (!response.ok) {
+      response = await fetch("catalogo.json", { cache: "no-store" });
+    }
+    if (!response.ok) {
+      throw new Error("Catalogo no encontrado");
+    }
     state.books = normalizeBooks(await response.json());
     saveBooks();
   } catch (error) {
