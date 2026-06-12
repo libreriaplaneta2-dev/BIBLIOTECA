@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Catalogo - Centro Cultural y Biblioteca Popular San Francisco</title>
+    <link rel="stylesheet" href="styles.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
+    <script defer src="app.js"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand-mark" aria-hidden="true">
+        <span></span><span></span><span></span>
+      </div>
+      <div>
+        <h1>Centro Cultural y Biblioteca Popular</h1>
+        <p>San Francisco · Cordoba · Argentina</p>
+      </div>
+    </header>
+
+    <nav class="tabs" aria-label="Secciones">
+      <button class="tab active" data-view="catalogo">Catalogo</button>
+      <button class="tab" data-view="admin">Administracion</button>
+      <button class="tab" data-view="cultura">Agenda cultural</button>
+      <button class="tab" data-view="config">Configuracion</button>
+    </nav>
+
+    <main>
+      <section id="catalogo" class="view active">
+        <section id="featured" class="featured"></section>
+
+        <div class="toolbar">
+          <label class="search">
+            <span>Buscar</span>
+            <input id="searchInput" type="search" placeholder="Titulo, autor, ISBN o estante...">
+          </label>
+          <label>
+            Categoria
+            <select id="categoryFilter"></select>
+          </label>
+          <label>
+            Estado
+            <select id="stateFilter">
+              <option value="">Cualquier estado</option>
+              <option>Disponible</option>
+              <option>Prestado</option>
+              <option>Reservado</option>
+              <option>No disponible</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="stats" id="stats"></div>
+
+        <section class="section-title">
+          <h2>Catalogo</h2>
+          <button id="downloadVisibleQr" class="ghost">QR de esta busqueda</button>
+        </section>
+        <div id="booksGrid" class="books-grid"></div>
+
+        <section class="suggestions">
+          <h2>El libro que falta</h2>
+          <form id="suggestionForm">
+            <input name="titulo" placeholder="Titulo o autor sugerido" required>
+            <input name="nombre" placeholder="Tu nombre, opcional">
+            <button type="submit">Guardar sugerencia</button>
+          </form>
+          <p class="muted">En GitHub Pages las sugerencias quedan guardadas en este navegador. Para recibirlas online conviene conectar Google Forms, Formspree o Supabase.</p>
+        </section>
+      </section>
+
+      <section id="admin" class="view">
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Panel de administracion</h2>
+              <p>Importa miles de libros desde Excel y exporta el catalogo listo para subir a GitHub Pages.</p>
+            </div>
+            <button id="downloadTemplate" class="ghost">Descargar plantilla</button>
+          </div>
+
+          <div class="dropzone">
+            <input id="excelFile" type="file" accept=".xlsx,.xls,.csv">
+            <p>Columnas aceptadas: titulo, autor, categoria, anio, isbn, estado, notas, estante, imagen, sinopsis, destacado, tematica.</p>
+          </div>
+
+          <div class="actions">
+            <button id="importExcel">Importar Excel</button>
+            <button id="enrichAll" class="secondary">Buscar tapas y sinopsis</button>
+            <button id="exportJson" class="secondary">Exportar catalogo.json</button>
+            <button id="clearLocal" class="danger">Borrar cambios locales</button>
+          </div>
+
+          <div id="adminStatus" class="status"></div>
+        </section>
+
+        <section class="panel">
+          <h2>Prestamos y vencimientos</h2>
+          <div class="toolbar compact">
+            <label>
+              Libro
+              <select id="loanBook"></select>
+            </label>
+            <label>
+              Socio
+              <input id="loanPerson" placeholder="Nombre del socio">
+            </label>
+            <label>
+              Fecha de prestamo
+              <input id="loanDate" type="date">
+            </label>
+            <button id="markLoan">Marcar prestado</button>
+            <button id="markReturn" class="secondary">Marcar devuelto</button>
+          </div>
+          <div id="loanList" class="loan-list"></div>
+        </section>
+      </section>
+
+      <section id="cultura" class="view">
+        <section class="panel">
+          <h2>Proximos eventos</h2>
+          <div class="event-list">
+            <article>
+              <strong>Taller de lectura</strong>
+              <span>Agregar fecha y horario desde el archivo de la web.</span>
+            </article>
+            <article>
+              <strong>Autores de San Francisco</strong>
+              <span>Espacio para libros, folletos y memoria local.</span>
+            </article>
+          </div>
+        </section>
+      </section>
+
+      <section id="config" class="view">
+        <section class="panel">
+          <h2>Configuracion</h2>
+          <label>
+            WhatsApp de la biblioteca
+            <input id="whatsappNumber" placeholder="Ej: 5493564000000">
+          </label>
+          <label>
+            API key de Google Books, opcional
+            <input id="googleBooksKey" placeholder="Recomendado dejar vacio en pagina publica">
+          </label>
+          <button id="saveConfig">Guardar configuracion</button>
+          <p class="muted">La clave de Google Books no es obligatoria. Si se guarda aca, queda en el navegador y no en el repositorio.</p>
+        </section>
+      </section>
+    </main>
+
+    <dialog id="bookDialog">
+      <button class="close" id="closeDialog" aria-label="Cerrar">x</button>
+      <div id="bookDetail"></div>
+    </dialog>
+  </body>
+</html>
