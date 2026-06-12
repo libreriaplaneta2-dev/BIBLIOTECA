@@ -154,15 +154,30 @@ function handleHeaderLogin() {
 }
 
 function showLoginDialog() {
-  const password = prompt("Contraseña de administracion:");
-  if (password === null) return;
-  if (password === state.config.adminPassword) {
-    sessionStorage.setItem("bpsf.admin", "1");
-    renderAdminAccess();
-    setStatus("Sesion de administracion iniciada.");
-  } else {
-    alert("Contraseña incorrecta.");
+  const dialog = $("#loginDialog");
+  const input = $("#loginPasswordInput");
+  const error = $("#loginError");
+  if (!dialog) return;
+  input.value = "";
+  error.style.display = "none";
+  dialog.showModal();
+
+  function attemptLogin() {
+    if (input.value === state.config.adminPassword) {
+      dialog.close();
+      sessionStorage.setItem("bpsf.admin", "1");
+      renderAdminAccess();
+      setStatus("Sesion de administracion iniciada.");
+    } else {
+      error.style.display = "";
+      input.value = "";
+      input.focus();
+    }
   }
+
+  $("#loginConfirmBtn").onclick = attemptLogin;
+  $("#loginCancelBtn").onclick = () => dialog.close();
+  input.onkeydown = (e) => { if (e.key === "Enter") attemptLogin(); };
 }
 
 function renderFilters() {
@@ -355,7 +370,6 @@ function renderEventos() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  // Sort upcoming first
   const sorted = [...state.eventos].sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
   const upcoming = sorted.filter((ev) => !ev.fecha || new Date(ev.fecha) >= today);
   const past = sorted.filter((ev) => ev.fecha && new Date(ev.fecha) < today);
@@ -363,20 +377,31 @@ function renderEventos() {
 
   if (list) {
     if (!display.length) {
-      list.innerHTML = '<p class="muted">No hay eventos proximos cargados.</p>';
+      list.innerHTML = '<p class="muted">No hay eventos proximos cargados. Iniciá sesión para agregar.</p>';
     } else {
       list.innerHTML = display.map((ev) => {
         const isPast = ev.fecha && new Date(ev.fecha) < today;
-        return `<article style="${isPast ? "opacity:0.55" : ""}">
-          <strong>${escapeHtml(ev.titulo)}</strong>
-          <span class="meta">
-            ${ev.fecha ? formatDate(ev.fecha) : ""}
-            ${ev.hora ? " · " + escapeHtml(ev.hora) + " hs" : ""}
-            ${ev.lugar ? " · " + escapeHtml(ev.lugar) : ""}
-            ${isPast ? " · <em>Finalizado</em>" : ""}
-          </span>
-          ${ev.descripcion ? `<span>${escapeHtml(ev.descripcion)}</span>` : ""}
-        </article>`;
+        const phone = state.config.whatsapp;
+        const waText = `Hola! Me interesa el evento: "${ev.titulo}"${ev.fecha ? " (" + formatDate(ev.fecha) + ")" : ""}. Quisiera consultar / inscribirme.`;
+        const waUrl = phone
+          ? `https://wa.me/${encodeURIComponent(phone)}?text=${encodeURIComponent(waText)}`
+          : `https://wa.me/?text=${encodeURIComponent(waText)}`;
+        return `
+          <article class="evento-card${isPast ? " evento-pasado" : ""}">
+            ${ev.imagen ? `<div class="evento-img"><img src="${escapeAttribute(ev.imagen)}" alt="${escapeAttribute(ev.titulo)}" loading="lazy"></div>` : ""}
+            <div class="evento-body">
+              <div class="evento-meta-row">
+                ${ev.fecha ? `<span class="evento-fecha">${formatDate(ev.fecha)}</span>` : ""}
+                ${ev.hora ? `<span class="evento-hora">${escapeHtml(ev.hora)} hs</span>` : ""}
+                ${isPast ? `<span class="badge no-disponible">Finalizado</span>` : `<span class="badge">Proximo</span>`}
+              </div>
+              <h3 class="evento-titulo">${escapeHtml(ev.titulo)}</h3>
+              ${ev.lugar ? `<p class="evento-lugar">📍 ${escapeHtml(ev.lugar)}</p>` : ""}
+              ${ev.cupo ? `<p class="evento-cupo">👥 Cupo: ${escapeHtml(ev.cupo)} personas</p>` : ""}
+              ${ev.descripcion ? `<p class="evento-descripcion">${escapeHtml(ev.descripcion)}</p>` : ""}
+              ${!isPast ? `<a class="btn-whatsapp" href="${waUrl}" target="_blank" rel="noopener">💬 Consultas e inscripcion por WhatsApp</a>` : ""}
+            </div>
+          </article>`;
       }).join("");
     }
   }
@@ -413,7 +438,9 @@ function addEvento() {
     fecha: $("#eventoFecha")?.value || "",
     hora: $("#eventoHora")?.value || "",
     lugar: $("#eventoLugar")?.value.trim() || "",
-    descripcion: $("#eventoDescripcion")?.value.trim() || ""
+    descripcion: $("#eventoDescripcion")?.value.trim() || "",
+    imagen: $("#eventoImagen")?.value.trim() || "",
+    cupo: $("#eventoCupo")?.value.trim() || ""
   };
   state.eventos.unshift(evento);
   localStorage.setItem(STORAGE_KEYS.eventos, JSON.stringify(state.eventos));
@@ -431,7 +458,7 @@ function deleteEvento(index) {
 }
 
 function clearEventoForm() {
-  ["eventoTitulo", "eventoFecha", "eventoHora", "eventoLugar", "eventoDescripcion"].forEach((id) => {
+  ["eventoTitulo", "eventoFecha", "eventoHora", "eventoLugar", "eventoDescripcion", "eventoImagen", "eventoCupo"].forEach((id) => {
     const el = $(`#${id}`);
     if (el) el.value = "";
   });
