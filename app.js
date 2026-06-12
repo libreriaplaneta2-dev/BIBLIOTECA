@@ -283,6 +283,7 @@ async function enrichMissingBooks() {
   setStatus(`Buscando datos en Google Books para ${targets.length} libros...`);
   let updated = 0;
   for (const book of targets) {
+    const before = `${book.imagen || ""}|${book.sinopsis || ""}`;
     const data = await fetchGoogleBook(book);
     if (data) {
       book.titulo = book.titulo || data.titulo;
@@ -291,10 +292,11 @@ async function enrichMissingBooks() {
       book.anio = book.anio || data.anio;
       book.imagen = book.imagen || data.imagen;
       book.sinopsis = book.sinopsis || data.sinopsis;
-      updated += 1;
+      const after = `${book.imagen || ""}|${book.sinopsis || ""}`;
+      if (after !== before) updated += 1;
     }
     setStatus(`Google Books: ${updated} actualizados de ${targets.length}.`);
-    await wait(140);
+    await wait(450);
   }
   saveBooks();
   renderAll();
@@ -307,7 +309,7 @@ async function fetchGoogleBook(book) {
   const isbn = cleanIsbn(book.isbn);
   if (isbn) queries.push(`isbn:${isbn}`);
   if (book.titulo) {
-    const titleQuery = `intitle:${quoteQuery(book.titulo)}${book.autor ? `+inauthor:${quoteQuery(book.autor)}` : ""}`;
+    const titleQuery = `intitle:${book.titulo}${book.autor ? ` inauthor:${book.autor}` : ""}`;
     queries.push(titleQuery);
   }
 
@@ -315,11 +317,15 @@ async function fetchGoogleBook(book) {
     const data = await fetchGoogleBookQuery(query, key);
     if (data) return data;
   }
+  if (isbn) {
+    const data = await fetchOpenLibrary(isbn);
+    if (data) return data;
+  }
   return null;
 }
 
 async function fetchGoogleBookQuery(query, key) {
-  const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&langRestrict=es${key}`;
+  const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}${key}`;
   try {
     const response = await fetch(url);
     if (!response.ok) return null;
@@ -340,12 +346,29 @@ async function fetchGoogleBookQuery(query, key) {
   }
 }
 
-function cleanIsbn(value) {
-  return String(value || "").replace(/[^0-9Xx]/g, "");
+async function fetchOpenLibrary(isbn) {
+  const url = `https://openlibrary.org/api/books?bibkeys=ISBN:${encodeURIComponent(isbn)}&format=json&jscmd=data`;
+  try {
+    const response = await fetch(url);
+    if (!response.ok) return null;
+    const data = await response.json();
+    const info = data[`ISBN:${isbn}`];
+    if (!info) return null;
+    return {
+      titulo: info.title || "",
+      autor: (info.authors || []).map((author) => author.name).join(", "),
+      categoria: (info.subjects || [])[0]?.name || "",
+      anio: (info.publish_date || "").match(/\d{4}/)?.[0] || "",
+      imagen: info.cover?.large || info.cover?.medium || info.cover?.small || "",
+      sinopsis: info.excerpts?.[0]?.text || ""
+    };
+  } catch {
+    return null;
+  }
 }
 
-function quoteQuery(value) {
-  return String(value || "").trim().replace(/\s+/g, "+");
+function cleanIsbn(value) {
+  return String(value || "").replace(/[^0-9Xx]/g, "");
 }
 
 function downloadTemplate() {
@@ -484,7 +507,7 @@ function mapRow(row) {
     estado: normalized.estado || normalized.status || "",
     notas: normalized.notas || normalized.notes || "",
     estante: normalized.estante || normalized.ubicacion || "",
-    imagen: normalized.imagen || normalized.tapa || normalized.portada || "",
+    imagen: normalized.imagen || normalized.tapa || normalized.portada || normalized.cover || "",
     sinopsis: normalized.sinopsis || normalized.descripcion || "",
     destacado: normalized.destacado || "",
     tematica: normalized.tematica || normalized.tema || ""
