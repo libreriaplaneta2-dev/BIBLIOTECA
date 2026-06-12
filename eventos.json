@@ -1,5 +1,13 @@
 [
   {
+    "id": "29f1feb2-5bb4-4525-8298-95ce564a7fe1",
+    "titulo": "Taller de musica",
+    "fecha": "2026-06-12",
+    "hora": "15:00",
+    "lugar": "Salon principal",
+    "descripcion": "Clases de piano a cargo de Juan Perez"
+  },
+  {
     "id": "702217f6-488e-4016-af5c-875973bfea49",
     "titulo": "Taller de lectura",
     "fecha": "2026-06-14",
