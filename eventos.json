@@ -1,5 +1,15 @@
 [
   {
+    "id": "4414766f-7ddf-4f4b-88bc-d0dcf011c73a",
+    "titulo": "Taller de lectura",
+    "fecha": "2026-06-23",
+    "hora": "21:00",
+    "lugar": "Sala principal",
+    "descripcion": "Lectura letras de tango.",
+    "imagen": "",
+    "cupo": "30"
+  },
+  {
     "id": "2428d805-b32e-4b57-a917-7cf6eb641191",
     "titulo": "Clases de caligrafia",
     "fecha": "2026-06-22",
