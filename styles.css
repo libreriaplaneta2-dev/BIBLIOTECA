@@ -162,6 +162,24 @@ main {
   grid-template-columns: 1.2fr 1fr 180px auto auto;
 }
 
+.manual-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.inline-control {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+
+textarea {
+  min-height: 92px;
+  resize: vertical;
+}
+
 label {
   display: grid;
   gap: 7px;
@@ -359,6 +377,10 @@ canvas.qr {
 @media (max-width: 760px) {
   .tabs { overflow-x: auto; }
   .toolbar, .toolbar.compact, .featured-card, .detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .manual-grid, .inline-control {
     grid-template-columns: 1fr;
   }
 

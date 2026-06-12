@@ -97,6 +97,64 @@
         </section>
 
         <section class="panel">
+          <h2>Agregar libro manualmente</h2>
+          <div class="manual-grid">
+            <label>
+              ISBN
+              <div class="inline-control">
+                <input id="manualIsbn" placeholder="Ej: 9789500404199">
+                <button id="manualLookup" class="secondary">Buscar</button>
+              </div>
+            </label>
+            <label>
+              Estado
+              <select id="manualEstado">
+                <option>Disponible</option>
+                <option>Prestado</option>
+                <option>Reservado</option>
+                <option>No disponible</option>
+              </select>
+            </label>
+            <label>
+              Titulo
+              <input id="manualTitulo" placeholder="Titulo del libro">
+            </label>
+            <label>
+              Autor
+              <input id="manualAutor" placeholder="Autor">
+            </label>
+            <label>
+              Categoria
+              <input id="manualCategoria" placeholder="Literatura, Historia, Infantil...">
+            </label>
+            <label>
+              Año
+              <input id="manualAnio" placeholder="1963">
+            </label>
+            <label>
+              Estante
+              <input id="manualEstante" placeholder="Ej: Narrativa argentina">
+            </label>
+            <label>
+              URL de tapa
+              <input id="manualImagen" placeholder="Se completa automaticamente si se encuentra">
+            </label>
+          </div>
+          <label>
+            Sinopsis
+            <textarea id="manualSinopsis" placeholder="Sinopsis o descripcion breve"></textarea>
+          </label>
+          <label>
+            Notas
+            <textarea id="manualNotas" placeholder="Notas internas"></textarea>
+          </label>
+          <div class="actions">
+            <button id="manualAdd">Agregar libro</button>
+            <button id="manualClear" class="secondary">Limpiar formulario</button>
+          </div>
+        </section>
+
+        <section class="panel">
           <h2>Prestamos y vencimientos</h2>
           <div class="toolbar compact">
             <label>

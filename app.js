@@ -93,6 +93,9 @@ function bindEvents() {
   $("#markReturn").addEventListener("click", markReturned);
   $("#closeDialog").addEventListener("click", () => $("#bookDialog").close());
   $("#downloadVisibleQr").addEventListener("click", downloadSearchQr);
+  $("#manualLookup").addEventListener("click", lookupManualBook);
+  $("#manualAdd").addEventListener("click", addManualBook);
+  $("#manualClear").addEventListener("click", clearManualForm);
 }
 
 function showView(view) {
@@ -282,10 +285,13 @@ async function enrichMissingBooks() {
   }
   setStatus(`Buscando datos en Google Books para ${targets.length} libros...`);
   let updated = 0;
+  let found = 0;
+  let failed = 0;
   for (const book of targets) {
     const before = `${book.imagen || ""}|${book.sinopsis || ""}`;
     const data = await fetchGoogleBook(book);
     if (data) {
+      found += 1;
       book.titulo = book.titulo || data.titulo;
       book.autor = book.autor || data.autor;
       book.categoria = book.categoria || data.categoria;
@@ -294,13 +300,15 @@ async function enrichMissingBooks() {
       book.sinopsis = book.sinopsis || data.sinopsis;
       const after = `${book.imagen || ""}|${book.sinopsis || ""}`;
       if (after !== before) updated += 1;
+    } else {
+      failed += 1;
     }
-    setStatus(`Google Books: ${updated} actualizados de ${targets.length}.`);
+    setStatus(`Buscando: ${found} encontrados, ${updated} actualizados, ${failed} sin datos, de ${targets.length}.`);
     await wait(450);
   }
   saveBooks();
   renderAll();
-  setStatus(`Listo. Se actualizaron ${updated} libros con tapa y/o sinopsis.`);
+  setStatus(`Listo. Encontrados: ${found}. Actualizados: ${updated}. Sin datos: ${failed}.`);
 }
 
 async function fetchGoogleBook(book) {
@@ -384,6 +392,73 @@ function downloadTemplate() {
     return;
   }
   downloadFile("plantilla-catalogo-biblioteca.csv", rows.map((row) => row.join(",")).join("\n"), "text/csv");
+}
+
+async function lookupManualBook() {
+  const isbn = $("#manualIsbn").value.trim();
+  const titulo = $("#manualTitulo").value.trim();
+  const autor = $("#manualAutor").value.trim();
+  if (!isbn && !titulo) {
+    setStatus("Escribi un ISBN o un titulo para buscar.");
+    return;
+  }
+  setStatus("Buscando datos del libro...");
+  const data = await fetchGoogleBook({ isbn, titulo, autor });
+  if (!data) {
+    setStatus("No se encontraron datos. Podes completar el libro manualmente.");
+    return;
+  }
+  if (data.titulo) $("#manualTitulo").value = data.titulo;
+  if (data.autor) $("#manualAutor").value = data.autor;
+  if (data.categoria) $("#manualCategoria").value = data.categoria;
+  if (data.anio) $("#manualAnio").value = data.anio;
+  if (data.imagen) $("#manualImagen").value = data.imagen;
+  if (data.sinopsis) $("#manualSinopsis").value = data.sinopsis;
+  setStatus("Datos encontrados. Revisalos y toca Agregar libro.");
+}
+
+function addManualBook() {
+  const book = {
+    titulo: $("#manualTitulo").value.trim(),
+    autor: $("#manualAutor").value.trim(),
+    categoria: $("#manualCategoria").value.trim(),
+    anio: $("#manualAnio").value.trim(),
+    isbn: $("#manualIsbn").value.trim(),
+    estado: $("#manualEstado").value,
+    notas: $("#manualNotas").value.trim(),
+    estante: $("#manualEstante").value.trim(),
+    imagen: $("#manualImagen").value.trim(),
+    sinopsis: $("#manualSinopsis").value.trim(),
+    destacado: false,
+    tematica: ""
+  };
+  if (!book.titulo) {
+    setStatus("El titulo es obligatorio para agregar un libro.");
+    return;
+  }
+  book.id = slug([book.titulo, book.autor, book.isbn].filter(Boolean).join("-"));
+  state.books.unshift(book);
+  saveBooks();
+  renderAll();
+  clearManualForm();
+  setStatus("Libro agregado. Para publicarlo, usa Exportar catalogo.json y subilo a GitHub.");
+}
+
+function clearManualForm() {
+  [
+    "manualIsbn",
+    "manualTitulo",
+    "manualAutor",
+    "manualCategoria",
+    "manualAnio",
+    "manualEstante",
+    "manualImagen",
+    "manualSinopsis",
+    "manualNotas"
+  ].forEach((id) => {
+    $(`#${id}`).value = "";
+  });
+  $("#manualEstado").value = "Disponible";
 }
 
 function exportCatalog() {
