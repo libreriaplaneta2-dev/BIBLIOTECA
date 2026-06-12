@@ -275,15 +275,15 @@ async function importExcel() {
 }
 
 async function enrichMissingBooks() {
-  const targets = state.books.filter((book) => book.isbn && (!book.imagen || !book.sinopsis));
+  const targets = state.books.filter((book) => (book.isbn || book.titulo) && (!book.imagen || !book.sinopsis));
   if (!targets.length) {
-    setStatus("No hay libros pendientes con ISBN para buscar.");
+    setStatus("No hay libros pendientes para buscar.");
     return;
   }
   setStatus(`Buscando datos en Google Books para ${targets.length} libros...`);
   let updated = 0;
   for (const book of targets) {
-    const data = await fetchGoogleBook(book.isbn);
+    const data = await fetchGoogleBook(book);
     if (data) {
       book.titulo = book.titulo || data.titulo;
       book.autor = book.autor || data.autor;
@@ -301,9 +301,25 @@ async function enrichMissingBooks() {
   setStatus(`Listo. Se actualizaron ${updated} libros con tapa y/o sinopsis.`);
 }
 
-async function fetchGoogleBook(isbn) {
+async function fetchGoogleBook(book) {
   const key = state.config.googleBooksKey ? `&key=${encodeURIComponent(state.config.googleBooksKey)}` : "";
-  const url = `https://www.googleapis.com/books/v1/volumes?q=isbn:${encodeURIComponent(isbn)}&langRestrict=es${key}`;
+  const queries = [];
+  const isbn = cleanIsbn(book.isbn);
+  if (isbn) queries.push(`isbn:${isbn}`);
+  if (book.titulo) {
+    const titleQuery = `intitle:${quoteQuery(book.titulo)}${book.autor ? `+inauthor:${quoteQuery(book.autor)}` : ""}`;
+    queries.push(titleQuery);
+  }
+
+  for (const query of queries) {
+    const data = await fetchGoogleBookQuery(query, key);
+    if (data) return data;
+  }
+  return null;
+}
+
+async function fetchGoogleBookQuery(query, key) {
+  const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&langRestrict=es${key}`;
   try {
     const response = await fetch(url);
     if (!response.ok) return null;
@@ -322,6 +338,14 @@ async function fetchGoogleBook(isbn) {
   } catch {
     return null;
   }
+}
+
+function cleanIsbn(value) {
+  return String(value || "").replace(/[^0-9Xx]/g, "");
+}
+
+function quoteQuery(value) {
+  return String(value || "").trim().replace(/\s+/g, "+");
 }
 
 function downloadTemplate() {
