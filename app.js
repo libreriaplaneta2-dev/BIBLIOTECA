@@ -112,6 +112,8 @@ function bindEvents() {
   $("#eventoAdd")?.addEventListener("click", addEvento);
   $("#eventoClear")?.addEventListener("click", clearEventoForm);
   $("#exportEventos")?.addEventListener("click", exportEventos);
+  $("#eventoImagenFile")?.addEventListener("change", handleEventoImageUpload);
+  $("#eventoImagen")?.addEventListener("input", previewEventoImageUrl);
 }
 
 function showView(view) {
@@ -387,7 +389,7 @@ function renderEventos() {
           ? `https://wa.me/${encodeURIComponent(phone)}?text=${encodeURIComponent(waText)}`
           : `https://wa.me/?text=${encodeURIComponent(waText)}`;
         return `
-          <article class="evento-card${isPast ? " evento-pasado" : ""}">
+          <article class="evento-card${isPast ? " evento-pasado" : ""}${!ev.imagen ? " sin-imagen" : ""}">
             ${ev.imagen ? `<div class="evento-img"><img src="${escapeAttribute(ev.imagen)}" alt="${escapeAttribute(ev.titulo)}" loading="lazy"></div>` : ""}
             <div class="evento-body">
               <div class="evento-meta-row">
@@ -423,6 +425,33 @@ function renderEventos() {
         btn.addEventListener("click", () => deleteEvento(parseInt(btn.dataset.deleteEvento)));
       });
     }
+  }
+}
+
+function handleEventoImageUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const b64 = ev.target.result;
+    const input = $("#eventoImagen");
+    const preview = $("#eventoImagenPreview");
+    if (input) input.value = b64;
+    if (preview) { preview.src = b64; preview.style.display = "block"; }
+  };
+  reader.readAsDataURL(file);
+}
+
+function previewEventoImageUrl() {
+  const url = $("#eventoImagen")?.value.trim();
+  const preview = $("#eventoImagenPreview");
+  if (!preview) return;
+  if (url && !url.startsWith("data:")) {
+    preview.src = url;
+    preview.style.display = "block";
+    preview.onerror = () => { preview.style.display = "none"; };
+  } else if (!url) {
+    preview.style.display = "none";
   }
 }
 
@@ -462,6 +491,10 @@ function clearEventoForm() {
     const el = $(`#${id}`);
     if (el) el.value = "";
   });
+  const preview = $("#eventoImagenPreview");
+  if (preview) { preview.src = ""; preview.style.display = "none"; }
+  const fileInput = $("#eventoImagenFile");
+  if (fileInput) fileInput.value = "";
 }
 
 function exportEventos() {

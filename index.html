@@ -220,8 +220,13 @@
               <input id="eventoLugar" placeholder="Ej: Sala principal">
             </label>
             <label>
-              URL de imagen (opcional)
-              <input id="eventoImagen" placeholder="https://... o dejar vacio">
+              Imagen del evento
+              <div class="inline-control">
+                <input id="eventoImagen" placeholder="URL o usar el boton para subir desde la PC">
+                <label class="btn-upload" for="eventoImagenFile">Subir imagen</label>
+                <input id="eventoImagenFile" type="file" accept="image/*" style="display:none">
+              </div>
+              <img id="eventoImagenPreview" src="" alt="Vista previa" style="display:none;margin-top:8px;max-height:120px;border-radius:6px;object-fit:cover">
             </label>
             <label>
               Cupo maximo (opcional)
