@@ -2,13 +2,15 @@ const STORAGE_KEYS = {
   books: "bpsf.books",
   config: "bpsf.config",
   suggestions: "bpsf.suggestions",
-  loans: "bpsf.loans"
+  loans: "bpsf.loans",
+  eventos: "bpsf.eventos"
 };
 
 const state = {
   books: [],
   suggestions: [],
   loans: [],
+  eventos: [],
   config: {
     whatsapp: "",
     googleBooksKey: "",
@@ -31,6 +33,7 @@ async function init() {
   if (!state.books.length) {
     await loadCatalog();
   }
+  await loadEventos();
   bindEvents();
   renderAll();
   openBookFromHash();
@@ -59,6 +62,7 @@ function loadLocalState() {
   state.config = { ...state.config, ...readJson(STORAGE_KEYS.config, {}) };
   state.suggestions = readJson(STORAGE_KEYS.suggestions, []);
   state.loans = readJson(STORAGE_KEYS.loans, []);
+  state.eventos = readJson(STORAGE_KEYS.eventos, []);
 }
 
 function readJson(key, fallback) {
@@ -104,6 +108,10 @@ function bindEvents() {
     if (event.key === "Enter") unlockAdmin();
   });
   $("#adminLogout").addEventListener("click", lockAdmin);
+  $("#headerLoginBtn").addEventListener("click", handleHeaderLogin);
+  $("#eventoAdd")?.addEventListener("click", addEvento);
+  $("#eventoClear")?.addEventListener("click", clearEventoForm);
+  $("#exportEventos")?.addEventListener("click", exportEventos);
 }
 
 function showView(view) {
@@ -115,6 +123,7 @@ function renderAll() {
   $("#whatsappNumber").value = state.config.whatsapp || "";
   $("#googleBooksKey").value = state.config.googleBooksKey || "";
   renderAdminAccess();
+  renderEventos();
   renderFilters();
   renderCatalog();
   renderAdminSelects();
@@ -125,6 +134,35 @@ function renderAdminAccess() {
   const unlocked = sessionStorage.getItem("bpsf.admin") === "1";
   $("#adminLogin").style.display = unlocked ? "none" : "";
   $("#adminPanel").classList.toggle("unlocked", unlocked);
+  // Show/hide admin-only tabs and panels
+  $$(".tab-admin-only").forEach((el) => el.classList.toggle("hidden", !unlocked));
+  $$(".admin-only").forEach((el) => el.classList.toggle("hidden", !unlocked));
+  // Update header button
+  const btn = $("#headerLoginBtn");
+  if (btn) {
+    btn.textContent = unlocked ? "Cerrar sesion" : "Iniciar sesion";
+  }
+}
+
+function handleHeaderLogin() {
+  const unlocked = sessionStorage.getItem("bpsf.admin") === "1";
+  if (unlocked) {
+    lockAdmin();
+  } else {
+    showLoginDialog();
+  }
+}
+
+function showLoginDialog() {
+  const password = prompt("Contraseña de administracion:");
+  if (password === null) return;
+  if (password === state.config.adminPassword) {
+    sessionStorage.setItem("bpsf.admin", "1");
+    renderAdminAccess();
+    setStatus("Sesion de administracion iniciada.");
+  } else {
+    alert("Contraseña incorrecta.");
+  }
 }
 
 function renderFilters() {
@@ -290,6 +328,128 @@ async function importExcel() {
   saveBooks();
   renderAll();
   setStatus(`Importados ${state.books.length} libros. Ahora podes exportar catalogo.json.`);
+}
+
+
+// ── Eventos ──────────────────────────────────────────────────────────────────
+
+async function loadEventos() {
+  try {
+    let response = await fetch("data/eventos.json", { cache: "no-store" });
+    if (!response.ok) response = await fetch("eventos.json", { cache: "no-store" });
+    if (!response.ok) return;
+    const data = await response.json();
+    // Only load from file if local storage is empty
+    if (!state.eventos.length) {
+      state.eventos = data;
+      localStorage.setItem(STORAGE_KEYS.eventos, JSON.stringify(state.eventos));
+    }
+  } catch {
+    // No eventos.json yet, that's fine
+  }
+}
+
+function renderEventos() {
+  const list = $("#eventList");
+  const adminList = $("#eventoAdminList");
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Sort upcoming first
+  const sorted = [...state.eventos].sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+  const upcoming = sorted.filter((ev) => !ev.fecha || new Date(ev.fecha) >= today);
+  const past = sorted.filter((ev) => ev.fecha && new Date(ev.fecha) < today);
+  const display = [...upcoming, ...past];
+
+  if (list) {
+    if (!display.length) {
+      list.innerHTML = '<p class="muted">No hay eventos proximos cargados.</p>';
+    } else {
+      list.innerHTML = display.map((ev) => {
+        const isPast = ev.fecha && new Date(ev.fecha) < today;
+        return `<article style="${isPast ? "opacity:0.55" : ""}">
+          <strong>${escapeHtml(ev.titulo)}</strong>
+          <span class="meta">
+            ${ev.fecha ? formatDate(ev.fecha) : ""}
+            ${ev.hora ? " · " + escapeHtml(ev.hora) + " hs" : ""}
+            ${ev.lugar ? " · " + escapeHtml(ev.lugar) : ""}
+            ${isPast ? " · <em>Finalizado</em>" : ""}
+          </span>
+          ${ev.descripcion ? `<span>${escapeHtml(ev.descripcion)}</span>` : ""}
+        </article>`;
+      }).join("");
+    }
+  }
+
+  if (adminList) {
+    if (!state.eventos.length) {
+      adminList.innerHTML = '<p class="muted">No hay eventos todavia. Agrega uno arriba.</p>';
+    } else {
+      adminList.innerHTML = state.eventos.map((ev, i) => `
+        <article style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+          <div>
+            <strong>${escapeHtml(ev.titulo)}</strong>
+            <span class="meta"> · ${ev.fecha ? formatDate(ev.fecha) : "Sin fecha"}${ev.hora ? " " + escapeHtml(ev.hora) : ""}</span>
+          </div>
+          <button class="danger" style="min-height:34px;padding:0 12px;font-size:.85rem" data-delete-evento="${i}">Eliminar</button>
+        </article>
+      `).join("");
+      $$("[data-delete-evento]").forEach((btn) => {
+        btn.addEventListener("click", () => deleteEvento(parseInt(btn.dataset.deleteEvento)));
+      });
+    }
+  }
+}
+
+function addEvento() {
+  const titulo = $("#eventoTitulo")?.value.trim();
+  if (!titulo) {
+    setStatus("El titulo del evento es obligatorio.");
+    return;
+  }
+  const evento = {
+    id: crypto.randomUUID(),
+    titulo,
+    fecha: $("#eventoFecha")?.value || "",
+    hora: $("#eventoHora")?.value || "",
+    lugar: $("#eventoLugar")?.value.trim() || "",
+    descripcion: $("#eventoDescripcion")?.value.trim() || ""
+  };
+  state.eventos.unshift(evento);
+  localStorage.setItem(STORAGE_KEYS.eventos, JSON.stringify(state.eventos));
+  renderEventos();
+  clearEventoForm();
+  setStatus("Evento agregado. Exporta eventos.json y subilo a la carpeta data del repositorio.");
+}
+
+function deleteEvento(index) {
+  if (!confirm("Eliminar este evento?")) return;
+  state.eventos.splice(index, 1);
+  localStorage.setItem(STORAGE_KEYS.eventos, JSON.stringify(state.eventos));
+  renderEventos();
+  setStatus("Evento eliminado. Exporta eventos.json para guardar los cambios.");
+}
+
+function clearEventoForm() {
+  ["eventoTitulo", "eventoFecha", "eventoHora", "eventoLugar", "eventoDescripcion"].forEach((id) => {
+    const el = $(`#${id}`);
+    if (el) el.value = "";
+  });
+}
+
+function exportEventos() {
+  downloadFile("eventos.json", JSON.stringify(state.eventos, null, 2), "application/json");
+  setStatus("Descargado eventos.json. Subilo a la carpeta data del repositorio.");
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return "";
+  try {
+    const [year, month, day] = dateStr.split("-");
+    return `${day}/${month}/${year}`;
+  } catch {
+    return dateStr;
+  }
 }
 
 async function translateEnglishSynopses() {
@@ -608,6 +768,11 @@ function unlockAdmin() {
 function lockAdmin() {
   sessionStorage.removeItem("bpsf.admin");
   renderAdminAccess();
+  // If currently on a restricted tab, redirect to catalogo
+  const activeTab = $$(".tab.active")[0]?.dataset?.view;
+  if (activeTab === "admin" || activeTab === "config") {
+    showView("catalogo");
+  }
 }
 
 function markLoaned() {

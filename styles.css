@@ -302,6 +302,19 @@ input, select, textarea {
   margin-bottom: 22px;
 }
 
+.admin-login {
+  max-width: 460px;
+  margin-inline: auto;
+}
+
+.admin-panel {
+  display: none;
+}
+
+.admin-panel.unlocked {
+  display: block;
+}
+
 .panel-head {
   display: flex;
   justify-content: space-between;
@@ -389,3 +402,7 @@ canvas.qr {
     flex-direction: column;
   }
 }
+
+/* Admin visibility */
+.hidden { display: none !important; }
+

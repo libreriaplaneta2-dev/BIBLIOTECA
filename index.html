@@ -14,17 +14,18 @@
       <div class="brand-mark" aria-hidden="true">
         <span></span><span></span><span></span>
       </div>
-      <div>
+      <div style="flex:1">
         <h1>Centro Cultural y Biblioteca Popular</h1>
         <p>San Francisco · Cordoba · Argentina</p>
       </div>
+      <button id="headerLoginBtn" class="ghost" style="color:#fff;border-color:rgba(255,255,255,0.35);white-space:nowrap">Iniciar sesion</button>
     </header>
 
     <nav class="tabs" aria-label="Secciones">
       <button class="tab active" data-view="catalogo">Catalogo</button>
-      <button class="tab" data-view="admin">Administracion</button>
+      <button class="tab tab-admin-only hidden" data-view="admin">Administracion</button>
       <button class="tab" data-view="cultura">Agenda cultural</button>
-      <button class="tab" data-view="config">Configuracion</button>
+      <button class="tab tab-admin-only hidden" data-view="config">Configuracion</button>
     </nav>
 
     <main>
@@ -192,17 +193,50 @@
       </section>
 
       <section id="cultura" class="view">
+        <!-- Panel de carga: solo visible para admin -->
+        <section class="panel admin-only hidden">
+          <div class="panel-head">
+            <div>
+              <h2>Gestionar eventos</h2>
+              <p>Agrega, edita o elimina eventos de la agenda publica.</p>
+            </div>
+            <button id="exportEventos" class="ghost">Exportar eventos.json</button>
+          </div>
+          <div class="manual-grid">
+            <label>
+              Titulo del evento
+              <input id="eventoTitulo" placeholder="Ej: Taller de lectura">
+            </label>
+            <label>
+              Fecha
+              <input id="eventoFecha" type="date">
+            </label>
+            <label>
+              Hora
+              <input id="eventoHora" type="time" placeholder="Ej: 18:00">
+            </label>
+            <label>
+              Lugar
+              <input id="eventoLugar" placeholder="Ej: Sala principal">
+            </label>
+          </div>
+          <label>
+            Descripcion
+            <textarea id="eventoDescripcion" placeholder="Descripcion breve del evento"></textarea>
+          </label>
+          <div class="actions">
+            <button id="eventoAdd">Agregar evento</button>
+            <button id="eventoClear" class="secondary">Limpiar</button>
+          </div>
+          <div id="eventoAdminList" class="loan-list" style="margin-top:16px"></div>
+          <p class="muted" style="margin-top:12px">Despues de agregar o eliminar eventos, exporta <code>eventos.json</code> y subilo a la carpeta <code>data</code> del repositorio.</p>
+        </section>
+
+        <!-- Vista publica de eventos -->
         <section class="panel">
           <h2>Proximos eventos</h2>
-          <div class="event-list">
-            <article>
-              <strong>Taller de lectura</strong>
-              <span>Agregar fecha y horario desde el archivo de la web.</span>
-            </article>
-            <article>
-              <strong>Autores de San Francisco</strong>
-              <span>Espacio para libros, folletos y memoria local.</span>
-            </article>
+          <div id="eventList" class="event-list">
+            <p class="muted">Cargando eventos...</p>
           </div>
         </section>
       </section>
