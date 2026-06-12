@@ -219,15 +219,19 @@
               Lugar
               <input id="eventoLugar" placeholder="Ej: Sala principal">
             </label>
-            <label>
-              Imagen del evento
-              <div class="inline-control">
-                <input id="eventoImagen" placeholder="URL o usar el boton para subir desde la PC">
-                <label class="btn-upload" for="eventoImagenFile">Subir imagen</label>
+            <div style="display:grid;gap:7px">
+              <span style="font-weight:700">Imagen del evento</span>
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                <label class="btn-upload" for="eventoImagenFile" style="cursor:pointer">📷 Subir desde la PC</label>
                 <input id="eventoImagenFile" type="file" accept="image/*" style="display:none">
+                <span class="muted" style="font-size:.85rem">o pegar URL:</span>
+                <input id="eventoImagen" placeholder="https://..." style="flex:1;min-width:200px">
               </div>
-              <img id="eventoImagenPreview" src="" alt="Vista previa" style="display:none;margin-top:8px;max-height:120px;border-radius:6px;object-fit:cover">
-            </label>
+              <div id="eventoImagenPreviewBox" style="display:none;margin-top:4px">
+                <img id="eventoImagenPreview" src="" alt="Vista previa" style="max-height:140px;border-radius:8px;object-fit:cover;border:1px solid var(--line)">
+                <button type="button" id="eventoImagenClear" class="secondary" style="margin-left:10px;min-height:32px;padding:0 12px;font-size:.82rem">Quitar imagen</button>
+              </div>
+            </div>
             <label>
               Cupo maximo (opcional)
               <input id="eventoCupo" type="number" placeholder="Ej: 30">

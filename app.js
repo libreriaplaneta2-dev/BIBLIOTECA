@@ -113,6 +113,7 @@ function bindEvents() {
   $("#eventoClear")?.addEventListener("click", clearEventoForm);
   $("#exportEventos")?.addEventListener("click", exportEventos);
   $("#eventoImagenFile")?.addEventListener("change", handleEventoImageUpload);
+  $("#eventoImagenClear")?.addEventListener("click", hideEventoPreview);
   $("#eventoImagen")?.addEventListener("input", previewEventoImageUrl);
 }
 
@@ -431,28 +432,53 @@ function renderEventos() {
 function handleEventoImageUpload(e) {
   const file = e.target.files[0];
   if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (ev) => {
-    const b64 = ev.target.result;
+  // Resize to max 800px wide before storing as base64
+  const img = new Image();
+  const objectUrl = URL.createObjectURL(file);
+  img.onload = () => {
+    const MAX = 800;
+    let w = img.width, h = img.height;
+    if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+    const canvas = document.createElement("canvas");
+    canvas.width = w; canvas.height = h;
+    canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+    const b64 = canvas.toDataURL("image/jpeg", 0.82);
+    URL.revokeObjectURL(objectUrl);
     const input = $("#eventoImagen");
-    const preview = $("#eventoImagenPreview");
     if (input) input.value = b64;
-    if (preview) { preview.src = b64; preview.style.display = "block"; }
+    showEventoPreview(b64);
   };
-  reader.readAsDataURL(file);
+  img.src = objectUrl;
 }
 
 function previewEventoImageUrl() {
   const url = $("#eventoImagen")?.value.trim();
-  const preview = $("#eventoImagenPreview");
-  if (!preview) return;
-  if (url && !url.startsWith("data:")) {
-    preview.src = url;
-    preview.style.display = "block";
-    preview.onerror = () => { preview.style.display = "none"; };
-  } else if (!url) {
-    preview.style.display = "none";
+  if (url) {
+    showEventoPreview(url);
+  } else {
+    hideEventoPreview();
   }
+}
+
+function showEventoPreview(src) {
+  const box = $("#eventoImagenPreviewBox");
+  const img = $("#eventoImagenPreview");
+  if (!box || !img) return;
+  img.src = src;
+  img.onerror = () => hideEventoPreview();
+  box.style.display = "flex";
+  box.style.alignItems = "center";
+}
+
+function hideEventoPreview() {
+  const box = $("#eventoImagenPreviewBox");
+  const img = $("#eventoImagenPreview");
+  const input = $("#eventoImagen");
+  const fileInput = $("#eventoImagenFile");
+  if (box) box.style.display = "none";
+  if (img) img.src = "";
+  if (input) input.value = "";
+  if (fileInput) fileInput.value = "";
 }
 
 function addEvento() {
@@ -491,10 +517,7 @@ function clearEventoForm() {
     const el = $(`#${id}`);
     if (el) el.value = "";
   });
-  const preview = $("#eventoImagenPreview");
-  if (preview) { preview.src = ""; preview.style.display = "none"; }
-  const fileInput = $("#eventoImagenFile");
-  if (fileInput) fileInput.value = "";
+  hideEventoPreview();
 }
 
 function exportEventos() {
