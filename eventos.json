@@ -1,5 +1,13 @@
 [
   {
+    "id": "2428d805-b32e-4b57-a917-7cf6eb641191",
+    "titulo": "Clases de caligrafia",
+    "fecha": "2026-06-22",
+    "hora": "22:00",
+    "lugar": "Sala de musica",
+    "descripcion": "Clases de caligrafia a cargo del profesor..."
+  },
+  {
     "id": "29f1feb2-5bb4-4525-8298-95ce564a7fe1",
     "titulo": "Taller de musica",
     "fecha": "2026-06-12",
