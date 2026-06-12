@@ -72,6 +72,17 @@
       </section>
 
       <section id="admin" class="view">
+        <section id="adminLogin" class="panel admin-login">
+          <h2>Acceso de administracion</h2>
+          <label>
+            Contraseña
+            <input id="adminPassword" type="password" placeholder="Contraseña">
+          </label>
+          <button id="adminLoginButton">Ingresar</button>
+          <p class="muted">En GitHub Pages esta clave evita cambios casuales, pero no reemplaza un login real con base de datos.</p>
+        </section>
+
+        <div id="adminPanel" class="admin-panel">
         <section class="panel">
           <div class="panel-head">
             <div>
@@ -89,8 +100,10 @@
           <div class="actions">
             <button id="importExcel">Importar Excel</button>
             <button id="enrichAll" class="secondary">Buscar tapas y sinopsis</button>
+            <button id="translateSynopses" class="secondary">Traducir sinopsis</button>
             <button id="exportJson" class="secondary">Exportar catalogo.json</button>
             <button id="clearLocal" class="danger">Borrar cambios locales</button>
+            <button id="adminLogout" class="secondary">Cerrar administracion</button>
           </div>
 
           <div id="adminStatus" class="status"></div>
@@ -150,6 +163,7 @@
           </label>
           <div class="actions">
             <button id="manualAdd">Agregar libro</button>
+            <button id="manualTranslate" class="secondary">Traducir sinopsis</button>
             <button id="manualClear" class="secondary">Limpiar formulario</button>
           </div>
         </section>
@@ -174,6 +188,7 @@
           </div>
           <div id="loanList" class="loan-list"></div>
         </section>
+        </div>
       </section>
 
       <section id="cultura" class="view">
@@ -203,6 +218,19 @@
             API key de Google Books, opcional
             <input id="googleBooksKey" placeholder="Recomendado dejar vacio en pagina publica">
           </label>
+          <hr style="border:none;border-top:1px solid var(--line);margin:18px 0">
+          <h3 style="margin-bottom:12px">Cambiar contraseña de administracion</h3>
+          <div class="manual-grid">
+            <label>
+              Nueva contraseña
+              <input id="adminNewPassword" type="password" placeholder="Minimo 4 caracteres" autocomplete="new-password">
+            </label>
+            <label>
+              Repetir nueva contraseña
+              <input id="adminConfirmPassword" type="password" placeholder="Repetir contraseña" autocomplete="new-password">
+            </label>
+          </div>
+          <p class="muted">Deja los campos en blanco si no queres cambiar la contraseña. La contraseña por defecto es <code>biblioteca</code>.</p>
           <button id="saveConfig">Guardar configuracion</button>
           <p class="muted">La clave de Google Books no es obligatoria. Si se guarda aca, queda en el navegador y no en el repositorio.</p>
         </section>

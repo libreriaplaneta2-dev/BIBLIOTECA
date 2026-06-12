@@ -11,7 +11,8 @@ const state = {
   loans: [],
   config: {
     whatsapp: "",
-    googleBooksKey: ""
+    googleBooksKey: "",
+    adminPassword: "biblioteca"
   },
   filters: {
     q: "",
@@ -85,6 +86,7 @@ function bindEvents() {
   $("#downloadTemplate").addEventListener("click", downloadTemplate);
   $("#importExcel").addEventListener("click", importExcel);
   $("#enrichAll").addEventListener("click", enrichMissingBooks);
+  $("#translateSynopses").addEventListener("click", translateEnglishSynopses);
   $("#exportJson").addEventListener("click", exportCatalog);
   $("#clearLocal").addEventListener("click", clearLocalChanges);
   $("#saveConfig").addEventListener("click", saveConfig);
@@ -95,7 +97,13 @@ function bindEvents() {
   $("#downloadVisibleQr").addEventListener("click", downloadSearchQr);
   $("#manualLookup").addEventListener("click", lookupManualBook);
   $("#manualAdd").addEventListener("click", addManualBook);
+  $("#manualTranslate").addEventListener("click", translateManualSynopsis);
   $("#manualClear").addEventListener("click", clearManualForm);
+  $("#adminLoginButton").addEventListener("click", unlockAdmin);
+  $("#adminPassword").addEventListener("keydown", (event) => {
+    if (event.key === "Enter") unlockAdmin();
+  });
+  $("#adminLogout").addEventListener("click", lockAdmin);
 }
 
 function showView(view) {
@@ -106,10 +114,17 @@ function showView(view) {
 function renderAll() {
   $("#whatsappNumber").value = state.config.whatsapp || "";
   $("#googleBooksKey").value = state.config.googleBooksKey || "";
+  renderAdminAccess();
   renderFilters();
   renderCatalog();
   renderAdminSelects();
   renderLoans();
+}
+
+function renderAdminAccess() {
+  const unlocked = sessionStorage.getItem("bpsf.admin") === "1";
+  $("#adminLogin").style.display = unlocked ? "none" : "";
+  $("#adminPanel").classList.toggle("unlocked", unlocked);
 }
 
 function renderFilters() {
@@ -275,6 +290,75 @@ async function importExcel() {
   saveBooks();
   renderAll();
   setStatus(`Importados ${state.books.length} libros. Ahora podes exportar catalogo.json.`);
+}
+
+async function translateEnglishSynopses() {
+  const targets = state.books.filter((book) => book.sinopsis && looksEnglish(book.sinopsis));
+  if (!targets.length) {
+    setStatus("No se encontraron sinopsis en inglés para traducir.");
+    return;
+  }
+  setStatus(`Traduciendo ${targets.length} sinopsis del inglés...`);
+  let done = 0;
+  let failed = 0;
+  for (const book of targets) {
+    const translated = await translateToSpanish(book.sinopsis);
+    if (translated) {
+      book.sinopsis = translated;
+      done += 1;
+    } else {
+      failed += 1;
+    }
+    setStatus(`Traduciendo: ${done} listas, ${failed} con error, de ${targets.length}...`);
+    await wait(350);
+  }
+  saveBooks();
+  renderAll();
+  setStatus(`Traducción terminada. Traducidas: ${done}. Con error: ${failed}. Exportá el catálogo para guardar los cambios.`);
+}
+
+async function translateManualSynopsis() {
+  const textarea = $("#manualSinopsis");
+  const text = textarea.value.trim();
+  if (!text) {
+    setStatus("Escribí una sinopsis primero.");
+    return;
+  }
+  if (!looksEnglish(text)) {
+    setStatus("La sinopsis no parece estar en inglés.");
+    return;
+  }
+  setStatus("Traduciendo...");
+  const translated = await translateToSpanish(text);
+  if (translated) {
+    textarea.value = translated;
+    setStatus("Sinopsis traducida al español.");
+  } else {
+    setStatus("No se pudo traducir. Revisá la conexión a internet.");
+  }
+}
+
+function looksEnglish(text) {
+  const sample = text.slice(0, 300).toLowerCase();
+  const englishWords = ["the ", " is ", " are ", " was ", " were ", " of ", " in ", " and ", " to ", " for ", " with ", " his ", " her ", " they ", " that ", " this ", " from "];
+  const spanishWords = ["el ", "la ", "los ", "las ", "un ", "una ", "en ", "es ", "son ", "que ", "del ", " de ", " con ", " para ", " por ", " como "];
+  const enCount = englishWords.filter((w) => sample.includes(w)).length;
+  const esCount = spanishWords.filter((w) => sample.includes(w)).length;
+  return enCount >= 3 && enCount > esCount;
+}
+
+async function translateToSpanish(text) {
+  try {
+    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text.slice(0, 500))}&langpair=en|es`;
+    const response = await fetch(url);
+    if (!response.ok) return null;
+    const data = await response.json();
+    if (data.responseStatus !== 200) return null;
+    const result = data.responseData?.translatedText || "";
+    return result.length > 10 ? result : null;
+  } catch {
+    return null;
+  }
 }
 
 async function enrichMissingBooks() {
@@ -489,8 +573,41 @@ function saveSuggestion(event) {
 function saveConfig() {
   state.config.whatsapp = $("#whatsappNumber").value.trim();
   state.config.googleBooksKey = $("#googleBooksKey").value.trim();
+  const newPassword = $("#adminNewPassword")?.value.trim();
+  const confirmPassword = $("#adminConfirmPassword")?.value.trim();
+  if (newPassword || confirmPassword) {
+    if (newPassword.length < 4) {
+      alert("La contraseña debe tener al menos 4 caracteres.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      alert("Las contraseñas no coinciden. Revisalas y volvé a intentar.");
+      return;
+    }
+    state.config.adminPassword = newPassword;
+    if ($("#adminNewPassword")) $("#adminNewPassword").value = "";
+    if ($("#adminConfirmPassword")) $("#adminConfirmPassword").value = "";
+    alert("Contraseña de administración actualizada.");
+  }
   localStorage.setItem(STORAGE_KEYS.config, JSON.stringify(state.config));
-  setStatus("Configuracion guardada.");
+  setStatus("Configuración guardada.");
+}
+
+function unlockAdmin() {
+  const input = $("#adminPassword").value;
+  if (input === state.config.adminPassword) {
+    sessionStorage.setItem("bpsf.admin", "1");
+    $("#adminPassword").value = "";
+    renderAdminAccess();
+    setStatus("Administracion habilitada.");
+    return;
+  }
+  alert("Contraseña incorrecta.");
+}
+
+function lockAdmin() {
+  sessionStorage.removeItem("bpsf.admin");
+  renderAdminAccess();
 }
 
 function markLoaned() {
