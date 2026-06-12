@@ -1,0 +1,32 @@
+[
+  {
+    "id": "rayuela-julio-cortazar-9788437604572",
+    "titulo": "Rayuela",
+    "autor": "Julio Cortazar",
+    "categoria": "Literatura",
+    "anio": "1963",
+    "isbn": "9788437604572",
+    "estado": "Disponible",
+    "notas": "Novela argentina.",
+    "estante": "Narrativa argentina",
+    "imagen": "",
+    "sinopsis": "",
+    "destacado": true,
+    "tematica": "Autores argentinos"
+  },
+  {
+    "id": "el-aleph-jorge-luis-borges-9788420633190",
+    "titulo": "El Aleph",
+    "autor": "Jorge Luis Borges",
+    "categoria": "Cuentos",
+    "anio": "1949",
+    "isbn": "9788420633190",
+    "estado": "Disponible",
+    "notas": "Cuentos clasicos de la literatura argentina.",
+    "estante": "Narrativa argentina",
+    "imagen": "",
+    "sinopsis": "",
+    "destacado": false,
+    "tematica": "Autores argentinos"
+  }
+]
