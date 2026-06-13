@@ -347,10 +347,20 @@
         </label>
         <label>SINOPSIS<textarea id="editSinopsis" style="min-height:80px"></textarea></label>
         <label>ESTANTE<input id="editEstante" placeholder="Ej: Narrativa argentina"></label>
-        <label style="flex-direction:row;align-items:center;gap:10px;font-weight:700">
-          <input id="editDestacado" type="checkbox" style="width:18px;height:18px;min-height:unset">
-          Marcar como libro destacado
-        </label>
+        <div class="edit-flags">
+          <label class="edit-flag-label">
+            <input id="editNuevo" type="checkbox"> 🆕 Nuevo ingreso
+          </label>
+          <label class="edit-flag-label">
+            <input id="editRecomendado" type="checkbox"> ⭐ Recomendado
+          </label>
+          <label class="edit-flag-label">
+            <input id="editSemana" type="checkbox"> 📖 Libro de la semana
+          </label>
+          <label class="edit-flag-label">
+            <input id="editDestacado" type="checkbox"> 🌟 Destacado
+          </label>
+        </div>
       </div>
       <div style="padding:14px 22px;border-top:1px solid var(--line);display:flex;gap:10px;justify-content:flex-end;background:#f7f4ee">
         <button id="cancelEditDialog" class="secondary">Cancelar</button>

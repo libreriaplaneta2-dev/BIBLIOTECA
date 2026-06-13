@@ -565,7 +565,14 @@ function renderAdminBookList() {
     container.innerHTML = '<p class="muted">No hay libros cargados todavia.</p>';
     return;
   }
-  container.innerHTML = books.map((book) => `
+  container.innerHTML = books.map((book) => {
+    const tags = [
+      book.nuevo ? '<span class="admin-tag admin-tag-nuevo">🆕 Nuevo</span>' : "",
+      book.recomendado ? '<span class="admin-tag admin-tag-recomendado">⭐ Recomendado</span>' : "",
+      book.semana ? '<span class="admin-tag admin-tag-semana">📖 Semana</span>' : "",
+      book.destacado ? '<span class="admin-tag admin-tag-destacado">🌟 Destacado</span>' : "",
+    ].filter(Boolean).join("");
+    return `
     <div class="admin-book-row" data-id="${escapeAttribute(book.id)}">
       <div class="admin-book-cover">
         ${book.imagen
@@ -575,7 +582,7 @@ function renderAdminBookList() {
       <div class="admin-book-info">
         <strong>${escapeHtml(book.titulo)}</strong>
         <span class="meta">${escapeHtml(book.autor || "")} · ${escapeHtml(book.categoria || "")} · ${escapeHtml(book.anio || "")}</span>
-        ${book.destacado ? '<span class="tag" style="color:var(--gold);border-color:var(--gold)">⭐ Destacado</span>' : ""}
+        ${tags ? `<div class="admin-book-tags">${tags}</div>` : ""}
       </div>
       <div class="admin-book-actions">
         <select class="admin-estado-select" data-id="${escapeAttribute(book.id)}">
@@ -584,10 +591,10 @@ function renderAdminBookList() {
           ).join("")}
         </select>
         <button class="secondary admin-edit-btn" data-id="${escapeAttribute(book.id)}">✏️ Editar</button>
-        <button class="danger admin-delete-btn" data-id="${escapeAttribute(book.id)}" style="min-height:38px;padding:0 10px">🗑</button>
+        <button class="danger admin-delete-btn" data-id="${escapeAttribute(book.id)}">🗑</button>
       </div>
-    </div>
-  `).join("");
+    </div>`;
+  }).join("");
 
   container.querySelectorAll(".admin-estado-select").forEach((sel) => {
     sel.addEventListener("change", () => {
@@ -619,6 +626,9 @@ function openEditBook(id) {
   $("#editSinopsis").value = book.sinopsis || "";
   $("#editEstante").value = book.estante || "";
   $("#editDestacado").checked = !!book.destacado;
+  $("#editNuevo").checked = !!book.nuevo;
+  $("#editRecomendado").checked = !!book.recomendado;
+  $("#editSemana").checked = !!book.semana;
   const prev = $("#editImagenPreview");
   if (prev) { prev.src = book.imagen || ""; prev.style.display = book.imagen ? "block" : "none"; }
   $("#editBookDialog").showModal();
@@ -637,6 +647,9 @@ function saveEditedBook() {
   book.sinopsis = $("#editSinopsis").value.trim();
   book.estante = $("#editEstante").value.trim();
   book.destacado = $("#editDestacado").checked;
+  book.nuevo = $("#editNuevo").checked;
+  book.recomendado = $("#editRecomendado").checked;
+  book.semana = $("#editSemana").checked;
   saveBooks();
   renderAll();
   $("#editBookDialog").close();
