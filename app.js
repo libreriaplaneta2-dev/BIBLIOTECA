@@ -156,6 +156,8 @@ function renderAdminAccess() {
   if (btn) {
     btn.textContent = unlocked ? "Cerrar sesion" : "Iniciar sesion";
   }
+  // Render book list whenever admin panel becomes visible
+  if (unlocked) renderAdminBookList();
 }
 
 function handleHeaderLogin() {
@@ -181,6 +183,7 @@ function showLoginDialog() {
       dialog.close();
       sessionStorage.setItem("bpsf.admin", "1");
       renderAdminAccess();
+      renderAdminBookList();
       setStatus("Sesion de administracion iniciada.");
     } else {
       error.style.display = "";

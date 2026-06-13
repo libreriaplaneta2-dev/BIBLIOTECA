@@ -170,6 +170,17 @@
         </section>
 
         <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Libros en catalogo <span id="adminBookCount" class="muted" style="font-size:1rem;font-weight:400"></span></h2>
+              <p>Edita estado, destacado y datos de cada libro. Los cambios quedan en el navegador hasta que exportes el catalogo.json.</p>
+            </div>
+            <input id="adminBookSearch" type="search" placeholder="Buscar..." style="max-width:220px;min-height:38px">
+          </div>
+          <div id="adminBookList" class="admin-book-list"></div>
+        </section>
+
+        <section class="panel">
           <h2>Prestamos y vencimientos</h2>
           <div class="toolbar compact">
             <label>
@@ -304,6 +315,47 @@
         <button id="loginConfirmBtn">Ingresar</button>
       </div>
       <p id="loginError" class="muted" style="color:var(--bad);margin:10px 0 0;display:none">Contraseña incorrecta.</p>
+    </dialog>
+
+    <dialog id="editBookDialog" style="width:min(640px,calc(100vw - 24px));border:1px solid var(--line);border-radius:10px;padding:0;overflow:hidden">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:18px 22px;border-bottom:1px solid var(--line);background:#f7f4ee">
+        <h2 style="margin:0;font-size:1.2rem">✏️ Editar libro</h2>
+        <button id="closeEditDialog" class="secondary" style="min-height:34px;width:34px;padding:0">✕</button>
+      </div>
+      <div style="padding:22px;display:grid;gap:14px;overflow-y:auto;max-height:75vh">
+        <div class="manual-grid">
+          <label>TÍTULO<input id="editTitulo" placeholder="Titulo"></label>
+          <label>AUTOR<input id="editAutor" placeholder="Autor"></label>
+          <label>CATEGORÍA<input id="editCategoria" placeholder="Categoria"></label>
+          <label>AÑO<input id="editAnio" placeholder="Año"></label>
+          <label>ISBN<input id="editIsbn" placeholder="ISBN"></label>
+          <label>ESTADO
+            <select id="editEstado">
+              <option>Disponible</option>
+              <option>Prestado</option>
+              <option>Reservado</option>
+              <option>No disponible</option>
+            </select>
+          </label>
+        </div>
+        <label>URL DE TAPA
+          <div class="inline-control">
+            <input id="editImagen" placeholder="URL de la tapa">
+            <button id="editLookupImagen" class="secondary" title="Buscar tapa">🔍</button>
+          </div>
+          <img id="editImagenPreview" src="" alt="Tapa" style="display:none;margin-top:8px;max-height:100px;border-radius:6px;object-fit:cover;border:1px solid var(--line)">
+        </label>
+        <label>SINOPSIS<textarea id="editSinopsis" style="min-height:80px"></textarea></label>
+        <label>ESTANTE<input id="editEstante" placeholder="Ej: Narrativa argentina"></label>
+        <label style="flex-direction:row;align-items:center;gap:10px;font-weight:700">
+          <input id="editDestacado" type="checkbox" style="width:18px;height:18px;min-height:unset">
+          Marcar como libro destacado
+        </label>
+      </div>
+      <div style="padding:14px 22px;border-top:1px solid var(--line);display:flex;gap:10px;justify-content:flex-end;background:#f7f4ee">
+        <button id="cancelEditDialog" class="secondary">Cancelar</button>
+        <button id="saveEditDialog">Guardar cambios</button>
+      </div>
     </dialog>
   </body>
 </html>

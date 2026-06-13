@@ -553,3 +553,102 @@ canvas.qr {
     min-height: 180px;
   }
 }
+
+/* ── Admin book list ─────────────────────────────────────────────────────── */
+.admin-book-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-top: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.admin-book-row {
+  display: grid;
+  grid-template-columns: 52px 1fr auto;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+  background: #fff;
+  transition: background .15s;
+}
+
+.admin-book-row:last-child { border-bottom: none; }
+.admin-book-row:hover { background: #fdfaf5; }
+
+.admin-book-cover {
+  width: 44px;
+  height: 60px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #244d38, #102d49);
+  flex-shrink: 0;
+}
+
+.admin-book-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.admin-book-placeholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #244d38, #102d49);
+}
+
+.admin-book-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.admin-book-info strong {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 1rem;
+}
+
+.admin-book-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.admin-estado-select {
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: .88rem;
+  background: #fff;
+  color: var(--ink);
+  width: auto;
+}
+
+#editBookDialog label {
+  display: grid;
+  gap: 6px;
+  font-size: .82rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  color: #555;
+}
+
+@media (max-width: 760px) {
+  .admin-book-row {
+    grid-template-columns: 44px 1fr;
+    grid-template-rows: auto auto;
+  }
+  .admin-book-actions {
+    grid-column: 1 / -1;
+    flex-wrap: wrap;
+  }
+}
