@@ -706,3 +706,14 @@ canvas.qr {
   .admin-book-row { flex-wrap: wrap; }
   .admin-book-actions { width: 100%; justify-content: flex-end; }
 }
+
+/* Fix edit dialog layout */
+#editBookDialog {
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+}
+
+#editBookDialog[open] {
+  display: flex;
+}
