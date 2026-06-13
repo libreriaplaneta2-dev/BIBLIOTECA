@@ -1,3 +1,25 @@
+// ── Supabase ──────────────────────────────────────────────────────────────────
+const SUPABASE_URL = "https://vtzkxfaspzelkbttlian.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0emt4ZmFzcHplbGtidHRsaWFuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzMDQ2MDEsImV4cCI6MjA5Njg4MDYwMX0.HDS3K2i4uPGQdOo7czFMkgJpy_pULEfyFSI1gAn9PTU";
+
+async function sbFetch(path, options = {}) {
+  const res = await fetch(SUPABASE_URL + "/rest/v1/" + path, {
+    ...options,
+    headers: {
+      "apikey": SUPABASE_KEY,
+      "Authorization": "Bearer " + SUPABASE_KEY,
+      "Content-Type": "application/json",
+      "Prefer": options.prefer || "return=representation",
+      ...(options.headers || {})
+    }
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(err);
+  }
+  return res.status === 204 ? null : res.json();
+}
+
 const STORAGE_KEYS = {
   books: "bpsf.books",
   config: "bpsf.config",
@@ -328,16 +350,8 @@ function openBook(id) {
   const book = state.books.find((item) => item.id === id);
   if (!book) return;
   const loans = state.loans.filter((loan) => loan.bookId === id);
-  const approved = state.resenas.filter((r) => r.bookId === id && r.aprobada);
-
-  const resenasHtml = approved.length
-    ? approved.map((r) => `
-        <div class="resena-item">
-          <strong>${escapeHtml(r.nombre || "Lector anonimo")}</strong>
-          <span class="meta" style="float:right;font-size:.78rem">${escapeHtml(r.fecha || "")}</span>
-          <p>${escapeHtml(r.texto)}</p>
-        </div>`).join("")
-    : `<p class="muted" style="font-size:.88rem">Todavia no hay reseñas para este libro.</p>`;
+  // Load approved reseñas from Supabase async after dialog opens
+  let resenasHtml = `<p class="muted" style="font-size:.88rem" id="resenasCargando">Cargando reseñas...</p>`;
 
   $("#bookDetail").innerHTML = `
     <div class="detail-grid">
@@ -362,7 +376,7 @@ function openBook(id) {
         <p style="font-size:.85rem;margin:0 0 8px;color:#555">Dejá tu reseña (quedará pendiente de aprobación):</p>
         <input id="resenaName" placeholder="Tu nombre" style="margin-bottom:8px">
         <textarea id="resenaText" placeholder="¿Qué te pareció este libro?" style="min-height:70px;margin-bottom:8px"></textarea>
-        <button id="resenaSubmit" data-book-id="${book.id}">Enviar reseña</button>
+        <button id="resenaSubmit" data-book-id="${book.id}" data-book-titulo="${escapeAttribute(book.titulo)}">Enviar reseña</button>
         <p id="resenaMsg" class="muted" style="display:none;margin-top:8px"></p>
       </div>
     </div>
@@ -371,30 +385,59 @@ function openBook(id) {
   $("#bookDetail [data-whatsapp-detail]").addEventListener("click", () => openWhatsapp(book.id));
   $("#resenaSubmit").addEventListener("click", submitResena);
   makeQr($("#bookQr"), bookUrl(book));
+  // Load reseñas async
+  sbFetch(`resenas?book_id=eq.${encodeURIComponent(id)}&aprobada=eq.true&order=created_at.asc`, { prefer: "" })
+    .then((resenas) => {
+      const list = document.querySelector(".resenas-list");
+      if (!list) return;
+      list.innerHTML = resenas.length
+        ? resenas.map((r) => `
+            <div class="resena-item">
+              <strong>${escapeHtml(r.nombre || "Lector anónimo")}</strong>
+              <span class="meta" style="float:right;font-size:.78rem">${escapeHtml(r.fecha || "")}</span>
+              <p>${escapeHtml(r.texto)}</p>
+            </div>`).join("")
+        : '<p class="muted" style="font-size:.88rem">Todavia no hay reseñas para este libro.</p>';
+    })
+    .catch(() => {
+      const list = document.querySelector(".resenas-list");
+      if (list) list.innerHTML = '<p class="muted" style="font-size:.88rem">No se pudieron cargar las reseñas.</p>';
+    });
 }
 
-function submitResena() {
+async function submitResena() {
   const bookId = $("#resenaSubmit").dataset.bookId;
+  const bookTitulo = $("#resenaSubmit").dataset.bookTitulo || "";
   const nombre = $("#resenaName").value.trim();
   const texto = $("#resenaText").value.trim();
   const msg = $("#resenaMsg");
+  const btn = $("#resenaSubmit");
   if (!texto) { msg.textContent = "Escribí algo antes de enviar."; msg.style.display = ""; return; }
-  const resena = {
-    id: crypto.randomUUID(),
-    bookId,
-    nombre: nombre || "Lector anónimo",
-    texto,
-    fecha: new Date().toLocaleDateString("es-AR"),
-    aprobada: false
-  };
-  state.resenas.push(resena);
-  localStorage.setItem(STORAGE_KEYS.resenas, JSON.stringify(state.resenas));
-  $("#resenaName").value = "";
-  $("#resenaText").value = "";
-  msg.textContent = "¡Gracias! Tu reseña fue enviada y quedará visible una vez que sea aprobada.";
-  msg.style.display = "";
-  // Notify admin count
-  renderAdminResenas();
+  btn.disabled = true;
+  btn.textContent = "Enviando...";
+  try {
+    await sbFetch("resenas", {
+      method: "POST",
+      body: JSON.stringify({
+        book_id: bookId,
+        book_titulo: bookTitulo,
+        nombre: nombre || "Lector anónimo",
+        texto,
+        fecha: new Date().toLocaleDateString("es-AR"),
+        aprobada: false
+      })
+    });
+    $("#resenaName").value = "";
+    $("#resenaText").value = "";
+    msg.textContent = "¡Gracias! Tu reseña fue enviada y quedará visible una vez que sea aprobada.";
+    msg.style.display = "";
+  } catch (e) {
+    msg.textContent = "Error al enviar. Revisá tu conexión e intentá de nuevo.";
+    msg.style.display = "";
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Enviar reseña";
+  }
 }
 
 function openBookFromHash() {
@@ -782,15 +825,22 @@ function deleteBook(id) {
 
 // ── Reseñas ───────────────────────────────────────────────────────────────────
 
-function renderAdminResenas() {
+async function renderAdminResenas() {
   const container = $("#adminResenasList");
   if (!container) return;
-  const pending = state.resenas.filter((r) => !r.aprobada);
-  const approved = state.resenas.filter((r) => r.aprobada);
+  container.innerHTML = '<p class="muted">Cargando reseñas...</p>';
+  let resenas = [];
+  try {
+    resenas = await sbFetch("resenas?order=created_at.desc", { prefer: "" });
+  } catch(e) {
+    container.innerHTML = '<p class="muted">No se pudieron cargar las reseñas. Revisá la conexión.</p>';
+    return;
+  }
   const badge = $("#resenasAdminBadge");
+  const pending = resenas.filter((r) => !r.aprobada);
   if (badge) badge.textContent = pending.length ? `(${pending.length} pendientes)` : "";
 
-  if (!state.resenas.length) {
+  if (!resenas.length) {
     container.innerHTML = '<p class="muted">No hay reseñas todavia.</p>';
     return;
   }
@@ -798,12 +848,11 @@ function renderAdminResenas() {
   const renderGroup = (list, label) => {
     if (!list.length) return "";
     return `<h4 style="margin:14px 0 8px;font-size:.9rem;color:#555">${label}</h4>` +
-      list.map((r) => {
-        const book = state.books.find((b) => b.id === r.bookId);
-        return `<div class="resena-admin-item${r.aprobada ? " aprobada" : ""}">
+      list.map((r) => `
+        <div class="resena-admin-item${r.aprobada ? " aprobada" : ""}">
           <div class="resena-admin-info">
             <strong>${escapeHtml(r.nombre)}</strong>
-            <span class="meta"> sobre <em>${escapeHtml(book?.titulo || "libro eliminado")}</em> · ${escapeHtml(r.fecha)}</span>
+            <span class="meta"> sobre <em>${escapeHtml(r.book_titulo || r.book_id)}</em> · ${escapeHtml(r.fecha || "")}</span>
             <p style="margin:4px 0 0">${escapeHtml(r.texto)}</p>
           </div>
           <div class="resena-admin-actions">
@@ -812,24 +861,31 @@ function renderAdminResenas() {
               : `<span style="font-size:.8rem;color:var(--ok)">✅ Publicada</span>`}
             <button class="danger" style="min-height:32px;padding:0 10px;font-size:.82rem" data-eliminar-resena="${r.id}">🗑 Eliminar</button>
           </div>
-        </div>`;
-      }).join("");
+        </div>`).join("");
   };
 
-  container.innerHTML = renderGroup(pending, "⏳ Pendientes de aprobacion") + renderGroup(approved, "✅ Aprobadas y publicadas");
+  container.innerHTML = renderGroup(pending, "⏳ Pendientes de aprobacion") + renderGroup(resenas.filter(r => r.aprobada), "✅ Aprobadas y publicadas");
 
   $$("[data-aprobar-resena]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const r = state.resenas.find((x) => x.id === btn.dataset.aprobarResena);
-      if (r) { r.aprobada = true; localStorage.setItem(STORAGE_KEYS.resenas, JSON.stringify(state.resenas)); renderAdminResenas(); }
+    btn.addEventListener("click", async () => {
+      btn.disabled = true;
+      try {
+        await sbFetch(`resenas?id=eq.${btn.dataset.aprobarResena}`, {
+          method: "PATCH",
+          body: JSON.stringify({ aprobada: true })
+        });
+        renderAdminResenas();
+      } catch(e) { btn.disabled = false; alert("Error al aprobar. Intentá de nuevo."); }
     });
   });
   $$("[data-eliminar-resena]").forEach((btn) => {
-    btn.addEventListener("click", () => {
+    btn.addEventListener("click", async () => {
       if (!confirm("Eliminar esta reseña?")) return;
-      state.resenas = state.resenas.filter((x) => x.id !== btn.dataset.eliminarResena);
-      localStorage.setItem(STORAGE_KEYS.resenas, JSON.stringify(state.resenas));
-      renderAdminResenas();
+      btn.disabled = true;
+      try {
+        await sbFetch(`resenas?id=eq.${btn.dataset.eliminarResena}`, { method: "DELETE", prefer: "" });
+        renderAdminResenas();
+      } catch(e) { btn.disabled = false; alert("Error al eliminar. Intentá de nuevo."); }
     });
   });
 }
