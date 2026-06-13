@@ -109,8 +109,8 @@ function bindEvents() {
   });
   $("#adminLogout").addEventListener("click", lockAdmin);
   $("#adminBookSearch")?.addEventListener("input", renderAdminBookList);
-  $("#closeEditDialog")?.addEventListener("click", () => $("#editBookDialog")?.close());
-  $("#cancelEditDialog")?.addEventListener("click", () => $("#editBookDialog")?.close());
+  $("#closeEditDialog")?.addEventListener("click", closeEditBook);
+  $("#cancelEditDialog")?.addEventListener("click", closeEditBook);
   $("#saveEditDialog")?.addEventListener("click", saveEditedBook);
   $("#editLookupImagen")?.addEventListener("click", lookupEditImagen);
   $("#editImagen")?.addEventListener("input", () => {
@@ -612,6 +612,24 @@ function renderAdminBookList() {
 
 let editingBookId = null;
 
+function openEditBookDialog() {
+  const d = $("#editBookDialog");
+  const b = $("#editBackdrop");
+  if (!d) return;
+  d.style.display = "flex";
+  d.setAttribute("open", "");
+  if (b) b.classList.add("active");
+}
+
+function closeEditBook() {
+  const d = $("#editBookDialog");
+  const b = $("#editBackdrop");
+  if (!d) return;
+  d.style.display = "none";
+  d.removeAttribute("open");
+  if (b) b.classList.remove("active");
+}
+
 function openEditBook(id) {
   const book = state.books.find((b) => b.id === id);
   if (!book) return;
@@ -631,7 +649,7 @@ function openEditBook(id) {
   $("#editSemana").checked = !!book.semana;
   const prev = $("#editImagenPreview");
   if (prev) { prev.src = book.imagen || ""; prev.style.display = book.imagen ? "block" : "none"; }
-  $("#editBookDialog").showModal();
+  openEditBookDialog();
 }
 
 function saveEditedBook() {
@@ -652,7 +670,7 @@ function saveEditedBook() {
   book.semana = $("#editSemana").checked;
   saveBooks();
   renderAll();
-  $("#editBookDialog").close();
+  closeEditBook();
   setStatus(`Libro "${book.titulo}" actualizado. Exporta catalogo.json para publicar los cambios.`);
 }
 
