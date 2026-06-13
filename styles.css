@@ -709,7 +709,6 @@ canvas.qr {
 
 /* Fix edit dialog layout */
 #editBookDialog {
-  display: flex;
   flex-direction: column;
   max-height: 90vh;
 }
