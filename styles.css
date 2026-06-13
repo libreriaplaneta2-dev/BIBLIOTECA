@@ -707,36 +707,66 @@ canvas.qr {
   .admin-book-actions { width: 100%; justify-content: flex-end; }
 }
 
-/* Edit dialog layout */
-#editBookDialog {
-  display: none;
-  flex-direction: column;
-  max-height: 90vh;
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 1000;
-  margin: 0;
-}
-
-#editBookDialog[open] {
-  display: flex;
-}
-
-#editBookDialog::backdrop,
-#editBookDialog + .dialog-backdrop {
-  background: rgba(23,23,45,.55);
-}
-
-.dialog-backdrop {
-  display: none;
+/* Edit modal overlay */
+.edit-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(23,23,45,.55);
-  z-index: 999;
+  background: rgba(23,23,45,.6);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .2s;
 }
 
-.dialog-backdrop.active {
-  display: block;
+.edit-overlay.open {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.edit-modal {
+  background: #fff;
+  border-radius: 10px;
+  width: min(640px, 100%);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0,0,0,.3);
+  overflow: hidden;
+}
+
+.edit-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 22px;
+  border-bottom: 1px solid var(--line);
+  background: #f7f4ee;
+  flex-shrink: 0;
+}
+
+.edit-modal-header h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.edit-modal-body {
+  padding: 20px 22px;
+  display: grid;
+  gap: 13px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.edit-modal-footer {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  padding: 14px 22px;
+  border-top: 1px solid var(--line);
+  background: #f7f4ee;
+  flex-shrink: 0;
 }

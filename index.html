@@ -317,59 +317,52 @@
       <p id="loginError" class="muted" style="color:var(--bad);margin:10px 0 0;display:none">Contraseña incorrecta.</p>
     </dialog>
 
-    <div id="editBackdrop" class="dialog-backdrop"></div>
-    <dialog id="editBookDialog" style="width:min(640px,calc(100vw - 24px));max-height:90vh;border:1px solid var(--line);border-radius:10px;padding:0;overflow:hidden;display:flex;flex-direction:column">
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 22px;border-bottom:1px solid var(--line);background:#f7f4ee;flex-shrink:0">
-        <h2 style="margin:0;font-size:1.15rem">✏️ Editar libro</h2>
-        <button id="closeEditDialog" class="secondary" style="min-height:34px;width:34px;padding:0">✕</button>
-      </div>
-      <div style="padding:20px 22px;display:grid;gap:13px;overflow-y:auto;flex:1">
-        <div class="manual-grid">
-          <label>TÍTULO<input id="editTitulo" placeholder="Titulo"></label>
-          <label>AUTOR<input id="editAutor" placeholder="Autor"></label>
-          <label>CATEGORÍA<input id="editCategoria" placeholder="Categoria"></label>
-          <label>AÑO<input id="editAnio" placeholder="Año"></label>
-          <label>ISBN<input id="editIsbn" placeholder="ISBN"></label>
-          <label>ESTADO
-            <select id="editEstado">
-              <option>Disponible</option>
-              <option>Prestado</option>
-              <option>Reservado</option>
-              <option>No disponible</option>
-            </select>
+    <div id="editOverlay" class="edit-overlay" onclick="handleEditOverlayClick(event)">
+      <div class="edit-modal" onclick="event.stopPropagation()">
+        <div class="edit-modal-header">
+          <h2>✏️ Editar libro</h2>
+          <button id="closeEditDialog" class="secondary" style="min-height:34px;width:34px;padding:0">✕</button>
+        </div>
+        <div class="edit-modal-body">
+          <div class="manual-grid">
+            <label>TÍTULO<input id="editTitulo" placeholder="Titulo"></label>
+            <label>AUTOR<input id="editAutor" placeholder="Autor"></label>
+            <label>CATEGORÍA<input id="editCategoria" placeholder="Categoria"></label>
+            <label>AÑO<input id="editAnio" placeholder="Año"></label>
+            <label>ISBN<input id="editIsbn" placeholder="ISBN"></label>
+            <label>ESTADO
+              <select id="editEstado">
+                <option>Disponible</option>
+                <option>Prestado</option>
+                <option>Reservado</option>
+                <option>No disponible</option>
+              </select>
+            </label>
+          </div>
+          <label>URL DE TAPA
+            <div class="inline-control">
+              <input id="editImagen" placeholder="URL de la tapa">
+              <button id="editLookupImagen" class="secondary" title="Buscar tapa">🔍</button>
+            </div>
+            <img id="editImagenPreview" src="" alt="Tapa" style="display:none;margin-top:8px;max-height:90px;border-radius:6px;object-fit:cover;border:1px solid var(--line)">
           </label>
-        </div>
-        <label>URL DE TAPA
-          <div class="inline-control">
-            <input id="editImagen" placeholder="URL de la tapa">
-            <button id="editLookupImagen" class="secondary" title="Buscar tapa">🔍</button>
-          </div>
-          <img id="editImagenPreview" src="" alt="Tapa" style="display:none;margin-top:8px;max-height:90px;border-radius:6px;object-fit:cover;border:1px solid var(--line)">
-        </label>
-        <label>SINOPSIS<textarea id="editSinopsis" style="min-height:70px"></textarea></label>
-        <label>ESTANTE<input id="editEstante" placeholder="Ej: Narrativa argentina"></label>
-        <div style="padding-top:4px">
-          <p style="margin:0 0 8px;font-size:.82rem;font-weight:700;letter-spacing:.04em;color:#555">ETIQUETAS</p>
-          <div class="edit-flags">
-            <label class="edit-flag-label">
-              <input id="editNuevo" type="checkbox"> 🆕 Nuevo ingreso
-            </label>
-            <label class="edit-flag-label">
-              <input id="editRecomendado" type="checkbox"> ⭐ Recomendado
-            </label>
-            <label class="edit-flag-label">
-              <input id="editSemana" type="checkbox"> 📖 Libro de la semana
-            </label>
-            <label class="edit-flag-label">
-              <input id="editDestacado" type="checkbox"> 🌟 Destacado
-            </label>
+          <label>SINOPSIS<textarea id="editSinopsis" style="min-height:70px"></textarea></label>
+          <label>ESTANTE<input id="editEstante" placeholder="Ej: Narrativa argentina"></label>
+          <div style="padding-top:4px">
+            <p style="margin:0 0 8px;font-size:.82rem;font-weight:700;letter-spacing:.04em;color:#555">ETIQUETAS</p>
+            <div class="edit-flags">
+              <label class="edit-flag-label"><input id="editNuevo" type="checkbox"> 🆕 Nuevo ingreso</label>
+              <label class="edit-flag-label"><input id="editRecomendado" type="checkbox"> ⭐ Recomendado</label>
+              <label class="edit-flag-label"><input id="editSemana" type="checkbox"> 📖 Libro de la semana</label>
+              <label class="edit-flag-label"><input id="editDestacado" type="checkbox"> 🌟 Destacado</label>
+            </div>
           </div>
         </div>
+        <div class="edit-modal-footer">
+          <button id="cancelEditDialog" class="secondary">Cancelar</button>
+          <button id="saveEditDialog">Guardar cambios</button>
+        </div>
       </div>
-      <div style="padding:14px 22px;border-top:1px solid var(--line);display:flex;gap:10px;justify-content:flex-end;background:#f7f4ee;flex-shrink:0">
-        <button id="cancelEditDialog" class="secondary">Cancelar</button>
-        <button id="saveEditDialog">Guardar cambios</button>
-      </div>
-    </dialog>
+    </div>
   </body>
 </html>

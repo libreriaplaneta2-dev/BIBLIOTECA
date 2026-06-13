@@ -613,21 +613,17 @@ function renderAdminBookList() {
 let editingBookId = null;
 
 function openEditBookDialog() {
-  const d = $("#editBookDialog");
-  const b = $("#editBackdrop");
-  if (!d) return;
-  d.style.display = "flex";
-  d.setAttribute("open", "");
-  if (b) b.classList.add("active");
+  const overlay = $("#editOverlay");
+  if (overlay) overlay.classList.add("open");
 }
 
 function closeEditBook() {
-  const d = $("#editBookDialog");
-  const b = $("#editBackdrop");
-  if (!d) return;
-  d.style.display = "none";
-  d.removeAttribute("open");
-  if (b) b.classList.remove("active");
+  const overlay = $("#editOverlay");
+  if (overlay) overlay.classList.remove("open");
+}
+
+function handleEditOverlayClick(e) {
+  if (e.target === $("#editOverlay")) closeEditBook();
 }
 
 function openEditBook(id) {
