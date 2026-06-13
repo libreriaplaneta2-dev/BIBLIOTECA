@@ -4,10 +4,10 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Catalogo - Centro Cultural y Biblioteca Popular San Francisco</title>
-    <link rel="stylesheet" href="styles.css?v=3">
+    <link rel="stylesheet" href="styles.css?v=4">
     <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
-    <script defer src="app.js?v=3"></script>
+    <script defer src="app.js?v=4"></script>
   </head>
   <body>
     <header class="topbar">
@@ -178,6 +178,12 @@
             <input id="adminBookSearch" type="search" placeholder="Buscar..." style="max-width:220px;min-height:38px">
           </div>
           <div id="adminBookList" class="admin-book-list"></div>
+        </section>
+
+        <section class="panel">
+          <h2>💬 Reseñas de lectores <span id="resenasAdminBadge" style="color:var(--accent);font-size:.9rem;font-weight:400"></span></h2>
+          <p class="muted">Aprobá las reseñas antes de que aparezcan en la ficha de cada libro. Despues exportá el catalogo.json para publicarlas.</p>
+          <div id="adminResenasList" style="margin-top:12px"></div>
         </section>
 
         <section class="panel">

@@ -866,3 +866,82 @@ canvas.qr {
 @media (max-width: 600px) {
   .feat-grid { grid-template-columns: 1fr; }
 }
+
+/* ── Reseñas ─────────────────────────────────────────────────────────────── */
+.resenas-section {
+  border-top: 1px solid var(--line);
+  margin-top: 20px;
+  padding-top: 16px;
+}
+
+.resenas-section h3 {
+  margin: 0 0 12px;
+  font-size: 1.05rem;
+}
+
+.resenas-list {
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.resena-item {
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fffdf9;
+}
+
+.resena-item p {
+  margin: 4px 0 0;
+  font-size: .9rem;
+  line-height: 1.5;
+}
+
+.resena-form {
+  display: grid;
+  gap: 0;
+}
+
+.resena-form input,
+.resena-form textarea {
+  width: 100%;
+}
+
+/* Admin reseñas */
+.resena-admin-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fffdf9;
+  margin-bottom: 8px;
+}
+
+.resena-admin-item.aprobada {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.resena-admin-info {
+  flex: 1;
+  min-width: 0;
+  font-size: .88rem;
+}
+
+.resena-admin-info p {
+  margin: 4px 0 0;
+  line-height: 1.5;
+  color: #333;
+}
+
+.resena-admin-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+  align-items: center;
+}

@@ -3,7 +3,8 @@ const STORAGE_KEYS = {
   config: "bpsf.config",
   suggestions: "bpsf.suggestions",
   loans: "bpsf.loans",
-  eventos: "bpsf.eventos"
+  eventos: "bpsf.eventos",
+  resenas: "bpsf.resenas"
 };
 
 const state = {
@@ -11,6 +12,7 @@ const state = {
   suggestions: [],
   loans: [],
   eventos: [],
+  resenas: [],
   config: {
     whatsapp: "",
     googleBooksKey: "",
@@ -63,6 +65,7 @@ function loadLocalState() {
   state.suggestions = readJson(STORAGE_KEYS.suggestions, []);
   state.loans = readJson(STORAGE_KEYS.loans, []);
   state.eventos = readJson(STORAGE_KEYS.eventos, []);
+  state.resenas = readJson(STORAGE_KEYS.resenas, []);
 }
 
 function readJson(key, fallback) {
@@ -157,7 +160,7 @@ function renderAdminAccess() {
     btn.textContent = unlocked ? "Cerrar sesion" : "Iniciar sesion";
   }
   // Render book list whenever admin panel becomes visible
-  if (unlocked) renderAdminBookList();
+  if (unlocked) { renderAdminBookList(); renderAdminResenas(); }
 }
 
 function handleHeaderLogin() {
@@ -325,6 +328,17 @@ function openBook(id) {
   const book = state.books.find((item) => item.id === id);
   if (!book) return;
   const loans = state.loans.filter((loan) => loan.bookId === id);
+  const approved = state.resenas.filter((r) => r.bookId === id && r.aprobada);
+
+  const resenasHtml = approved.length
+    ? approved.map((r) => `
+        <div class="resena-item">
+          <strong>${escapeHtml(r.nombre || "Lector anonimo")}</strong>
+          <span class="meta" style="float:right;font-size:.78rem">${escapeHtml(r.fecha || "")}</span>
+          <p>${escapeHtml(r.texto)}</p>
+        </div>`).join("")
+    : `<p class="muted" style="font-size:.88rem">Todavia no hay reseñas para este libro.</p>`;
+
   $("#bookDetail").innerHTML = `
     <div class="detail-grid">
       <div>
@@ -339,14 +353,48 @@ function openBook(id) {
         <p><strong>Estante:</strong> ${escapeHtml(book.estante || "Sin estante")}</p>
         <p>${escapeHtml(book.sinopsis || book.notas || "Sinopsis pendiente de completar.")}</p>
         <button data-whatsapp-detail="${book.id}">Pedir por WhatsApp</button>
-        <h3>Historial</h3>
-        <p class="meta">${loans.length ? `Prestado ${loans.length} vez/veces.` : "Sin prestamos registrados en este navegador."}</p>
+      </div>
+    </div>
+    <div class="resenas-section">
+      <h3>💬 Reseñas de los lectores</h3>
+      <div class="resenas-list">${resenasHtml}</div>
+      <div class="resena-form">
+        <p style="font-size:.85rem;margin:0 0 8px;color:#555">Dejá tu reseña (quedará pendiente de aprobación):</p>
+        <input id="resenaName" placeholder="Tu nombre" style="margin-bottom:8px">
+        <textarea id="resenaText" placeholder="¿Qué te pareció este libro?" style="min-height:70px;margin-bottom:8px"></textarea>
+        <button id="resenaSubmit" data-book-id="${book.id}">Enviar reseña</button>
+        <p id="resenaMsg" class="muted" style="display:none;margin-top:8px"></p>
       </div>
     </div>
   `;
   $("#bookDialog").showModal();
   $("#bookDetail [data-whatsapp-detail]").addEventListener("click", () => openWhatsapp(book.id));
+  $("#resenaSubmit").addEventListener("click", submitResena);
   makeQr($("#bookQr"), bookUrl(book));
+}
+
+function submitResena() {
+  const bookId = $("#resenaSubmit").dataset.bookId;
+  const nombre = $("#resenaName").value.trim();
+  const texto = $("#resenaText").value.trim();
+  const msg = $("#resenaMsg");
+  if (!texto) { msg.textContent = "Escribí algo antes de enviar."; msg.style.display = ""; return; }
+  const resena = {
+    id: crypto.randomUUID(),
+    bookId,
+    nombre: nombre || "Lector anónimo",
+    texto,
+    fecha: new Date().toLocaleDateString("es-AR"),
+    aprobada: false
+  };
+  state.resenas.push(resena);
+  localStorage.setItem(STORAGE_KEYS.resenas, JSON.stringify(state.resenas));
+  $("#resenaName").value = "";
+  $("#resenaText").value = "";
+  msg.textContent = "¡Gracias! Tu reseña fue enviada y quedará visible una vez que sea aprobada.";
+  msg.style.display = "";
+  // Notify admin count
+  renderAdminResenas();
 }
 
 function openBookFromHash() {
@@ -729,6 +777,61 @@ function deleteBook(id) {
   saveBooks();
   renderAll();
   setStatus("Libro eliminado. Exportá catalogo.json para publicar los cambios.");
+}
+
+
+// ── Reseñas ───────────────────────────────────────────────────────────────────
+
+function renderAdminResenas() {
+  const container = $("#adminResenasList");
+  if (!container) return;
+  const pending = state.resenas.filter((r) => !r.aprobada);
+  const approved = state.resenas.filter((r) => r.aprobada);
+  const badge = $("#resenasAdminBadge");
+  if (badge) badge.textContent = pending.length ? `(${pending.length} pendientes)` : "";
+
+  if (!state.resenas.length) {
+    container.innerHTML = '<p class="muted">No hay reseñas todavia.</p>';
+    return;
+  }
+
+  const renderGroup = (list, label) => {
+    if (!list.length) return "";
+    return `<h4 style="margin:14px 0 8px;font-size:.9rem;color:#555">${label}</h4>` +
+      list.map((r) => {
+        const book = state.books.find((b) => b.id === r.bookId);
+        return `<div class="resena-admin-item${r.aprobada ? " aprobada" : ""}">
+          <div class="resena-admin-info">
+            <strong>${escapeHtml(r.nombre)}</strong>
+            <span class="meta"> sobre <em>${escapeHtml(book?.titulo || "libro eliminado")}</em> · ${escapeHtml(r.fecha)}</span>
+            <p style="margin:4px 0 0">${escapeHtml(r.texto)}</p>
+          </div>
+          <div class="resena-admin-actions">
+            ${!r.aprobada
+              ? `<button class="secondary" style="min-height:32px;padding:0 10px;font-size:.82rem" data-aprobar-resena="${r.id}">✅ Aprobar</button>`
+              : `<span style="font-size:.8rem;color:var(--ok)">✅ Publicada</span>`}
+            <button class="danger" style="min-height:32px;padding:0 10px;font-size:.82rem" data-eliminar-resena="${r.id}">🗑 Eliminar</button>
+          </div>
+        </div>`;
+      }).join("");
+  };
+
+  container.innerHTML = renderGroup(pending, "⏳ Pendientes de aprobacion") + renderGroup(approved, "✅ Aprobadas y publicadas");
+
+  $$("[data-aprobar-resena]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const r = state.resenas.find((x) => x.id === btn.dataset.aprobarResena);
+      if (r) { r.aprobada = true; localStorage.setItem(STORAGE_KEYS.resenas, JSON.stringify(state.resenas)); renderAdminResenas(); }
+    });
+  });
+  $$("[data-eliminar-resena]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      if (!confirm("Eliminar esta reseña?")) return;
+      state.resenas = state.resenas.filter((x) => x.id !== btn.dataset.eliminarResena);
+      localStorage.setItem(STORAGE_KEYS.resenas, JSON.stringify(state.resenas));
+      renderAdminResenas();
+    });
+  });
 }
 
 async function translateEnglishSynopses() {
