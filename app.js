@@ -108,6 +108,16 @@ function bindEvents() {
     if (event.key === "Enter") unlockAdmin();
   });
   $("#adminLogout").addEventListener("click", lockAdmin);
+  $("#adminBookSearch")?.addEventListener("input", renderAdminBookList);
+  $("#closeEditDialog")?.addEventListener("click", () => $("#editBookDialog")?.close());
+  $("#cancelEditDialog")?.addEventListener("click", () => $("#editBookDialog")?.close());
+  $("#saveEditDialog")?.addEventListener("click", saveEditedBook);
+  $("#editLookupImagen")?.addEventListener("click", lookupEditImagen);
+  $("#editImagen")?.addEventListener("input", () => {
+    const url = $("#editImagen").value.trim();
+    const prev = $("#editImagenPreview");
+    if (prev) { prev.src = url; prev.style.display = url ? "block" : "none"; }
+  });
   $("#headerLoginBtn").addEventListener("click", handleHeaderLogin);
   $("#eventoAdd")?.addEventListener("click", addEvento);
   $("#eventoClear")?.addEventListener("click", clearEventoForm);
@@ -127,6 +137,7 @@ function renderAll() {
   $("#googleBooksKey").value = state.config.googleBooksKey || "";
   renderAdminAccess();
   renderEventos();
+  renderAdminBookList();
   renderFilters();
   renderCatalog();
   renderAdminSelects();
@@ -533,6 +544,126 @@ function formatDate(dateStr) {
   } catch {
     return dateStr;
   }
+}
+
+
+// ── Admin book list ───────────────────────────────────────────────────────────
+
+function renderAdminBookList() {
+  const container = $("#adminBookList");
+  const countEl = $("#adminBookCount");
+  if (!container) return;
+  const q = normalizeText($("#adminBookSearch")?.value || "");
+  const books = q
+    ? state.books.filter((b) => normalizeText([b.titulo, b.autor, b.categoria, b.isbn].join(" ")).includes(q))
+    : state.books;
+  if (countEl) countEl.textContent = `(${books.length})`;
+  if (!books.length) {
+    container.innerHTML = '<p class="muted">No hay libros cargados todavia.</p>';
+    return;
+  }
+  container.innerHTML = books.map((book) => `
+    <div class="admin-book-row" data-id="${escapeAttribute(book.id)}">
+      <div class="admin-book-cover">
+        ${book.imagen
+          ? `<img src="${escapeAttribute(book.imagen)}" alt="" loading="lazy">`
+          : `<div class="admin-book-placeholder"></div>`}
+      </div>
+      <div class="admin-book-info">
+        <strong>${escapeHtml(book.titulo)}</strong>
+        <span class="meta">${escapeHtml(book.autor || "")} · ${escapeHtml(book.categoria || "")} · ${escapeHtml(book.anio || "")}</span>
+        ${book.destacado ? '<span class="tag" style="color:var(--gold);border-color:var(--gold)">⭐ Destacado</span>' : ""}
+      </div>
+      <div class="admin-book-actions">
+        <select class="admin-estado-select" data-id="${escapeAttribute(book.id)}">
+          ${["Disponible","Prestado","Reservado","No disponible"].map((s) =>
+            `<option${normalizeText(s) === normalizeText(book.estado) ? " selected" : ""}>${s}</option>`
+          ).join("")}
+        </select>
+        <button class="secondary admin-edit-btn" data-id="${escapeAttribute(book.id)}">✏️ Editar</button>
+        <button class="danger admin-delete-btn" data-id="${escapeAttribute(book.id)}" style="min-height:38px;padding:0 10px">🗑</button>
+      </div>
+    </div>
+  `).join("");
+
+  container.querySelectorAll(".admin-estado-select").forEach((sel) => {
+    sel.addEventListener("change", () => {
+      const book = state.books.find((b) => b.id === sel.dataset.id);
+      if (book) { book.estado = sel.value; saveBooks(); renderCatalog(); }
+    });
+  });
+  container.querySelectorAll(".admin-edit-btn").forEach((btn) => {
+    btn.addEventListener("click", () => openEditBook(btn.dataset.id));
+  });
+  container.querySelectorAll(".admin-delete-btn").forEach((btn) => {
+    btn.addEventListener("click", () => deleteBook(btn.dataset.id));
+  });
+}
+
+let editingBookId = null;
+
+function openEditBook(id) {
+  const book = state.books.find((b) => b.id === id);
+  if (!book) return;
+  editingBookId = id;
+  $("#editTitulo").value = book.titulo || "";
+  $("#editAutor").value = book.autor || "";
+  $("#editCategoria").value = book.categoria || "";
+  $("#editAnio").value = book.anio || "";
+  $("#editIsbn").value = book.isbn || "";
+  $("#editEstado").value = book.estado || "Disponible";
+  $("#editImagen").value = book.imagen || "";
+  $("#editSinopsis").value = book.sinopsis || "";
+  $("#editEstante").value = book.estante || "";
+  $("#editDestacado").checked = !!book.destacado;
+  const prev = $("#editImagenPreview");
+  if (prev) { prev.src = book.imagen || ""; prev.style.display = book.imagen ? "block" : "none"; }
+  $("#editBookDialog").showModal();
+}
+
+function saveEditedBook() {
+  const book = state.books.find((b) => b.id === editingBookId);
+  if (!book) return;
+  book.titulo = $("#editTitulo").value.trim();
+  book.autor = $("#editAutor").value.trim();
+  book.categoria = $("#editCategoria").value.trim();
+  book.anio = $("#editAnio").value.trim();
+  book.isbn = $("#editIsbn").value.trim();
+  book.estado = $("#editEstado").value;
+  book.imagen = $("#editImagen").value.trim();
+  book.sinopsis = $("#editSinopsis").value.trim();
+  book.estante = $("#editEstante").value.trim();
+  book.destacado = $("#editDestacado").checked;
+  saveBooks();
+  renderAll();
+  $("#editBookDialog").close();
+  setStatus(`Libro "${book.titulo}" actualizado. Exporta catalogo.json para publicar los cambios.`);
+}
+
+async function lookupEditImagen() {
+  const isbn = $("#editIsbn").value.trim();
+  const titulo = $("#editTitulo").value.trim();
+  if (!isbn && !titulo) { setStatus("Completá el ISBN o el título primero."); return; }
+  setStatus("Buscando tapa...");
+  const data = await fetchGoogleBook({ isbn, titulo, autor: $("#editAutor").value.trim() });
+  if (data?.imagen) {
+    $("#editImagen").value = data.imagen;
+    const prev = $("#editImagenPreview");
+    if (prev) { prev.src = data.imagen; prev.style.display = "block"; }
+    setStatus("Tapa encontrada.");
+  } else {
+    setStatus("No se encontró tapa. Podés pegar la URL manualmente.");
+  }
+}
+
+function deleteBook(id) {
+  const book = state.books.find((b) => b.id === id);
+  if (!book) return;
+  if (!confirm(`Eliminar "${book.titulo}"? Esta acción no se puede deshacer.`)) return;
+  state.books = state.books.filter((b) => b.id !== id);
+  saveBooks();
+  renderAll();
+  setStatus("Libro eliminado. Exportá catalogo.json para publicar los cambios.");
 }
 
 async function translateEnglishSynopses() {
