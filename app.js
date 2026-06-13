@@ -222,12 +222,12 @@ function renderFeatured() {
     { key: "nuevo",       label: "🆕 Nuevos ingresos",      cls: "feat-nuevo"       },
   ];
 
-  let html = "";
+  const sectionHtmls = [];
   sections.forEach(({ key, label, cls }) => {
     const books = state.books.filter((b) => b[key]);
     if (!books.length) return;
-    html += `<div class="feat-section">
-      <h3 class="feat-title ${cls}">${label}</h3>
+    sectionHtmls.push(`<div class="feat-section">
+      <span class="feat-title ${cls}">${label}</span>
       <div class="feat-row">
         ${books.map((book) => `
           <article class="feat-card" data-feat-id="${escapeAttribute(book.id)}">
@@ -238,11 +238,13 @@ function renderFeatured() {
             </div>
           </article>`).join("")}
       </div>
-    </div>`;
+    </div>`);
   });
 
-  // Fallback: if no flags set, show first book as featured
-  if (!html && state.books.length) {
+  let html = "";
+  if (sectionHtmls.length) {
+    html = `<div class="feat-grid">${sectionHtmls.join("")}</div>`;
+  } else if (state.books.length) {
     const book = state.books[0];
     html = `<article class="featured-card">
       <div class="cover">${coverImage(book)}</div>
