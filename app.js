@@ -54,9 +54,7 @@ document.addEventListener("DOMContentLoaded", init);
 
 async function init() {
   loadLocalState();
-  if (!state.books.length) {
-    await loadCatalog();
-  }
+  await loadCatalog();
   await loadEventos();
   bindEvents();
   renderAll();
@@ -66,18 +64,30 @@ async function init() {
 
 async function loadCatalog() {
   try {
-    let response = await fetch("data/catalogo.json", { cache: "no-store" });
-    if (!response.ok) {
-      response = await fetch("catalogo.json", { cache: "no-store" });
-    }
-    if (!response.ok) {
-      throw new Error("Catalogo no encontrado");
-    }
-    state.books = normalizeBooks(await response.json());
+    const data = await sbFetch("libros?order=titulo.asc", { prefer: "" });
+    state.books = normalizeBooks(data.map((b) => ({
+      id: b.id,
+      titulo: b.titulo || "",
+      autor: b.autor || "",
+      categoria: b.categoria || "",
+      anio: b.anio || "",
+      isbn: b.isbn || "",
+      estado: b.estado || "Disponible",
+      imagen: b.imagen || "",
+      sinopsis: b.sinopsis || "",
+      notas: b.notas || "",
+      estante: b.estante || "",
+      tematica: b.tematica || "",
+      destacado: !!b.destacado,
+      nuevo: !!b.nuevo,
+      recomendado: !!b.recomendado,
+      semana: !!b.semana,
+    })));
     saveBooks();
   } catch (error) {
+    console.error("Error cargando libros desde Supabase:", error);
     state.books = [];
-    setStatus("No se pudo cargar data/catalogo.json. Importa un Excel para comenzar.");
+    setStatus("No se pudieron cargar los libros. Revisá la conexión.");
   }
 }
 
@@ -493,17 +503,19 @@ async function importExcel() {
 
 async function loadEventos() {
   try {
-    let response = await fetch("data/eventos.json", { cache: "no-store" });
-    if (!response.ok) response = await fetch("eventos.json", { cache: "no-store" });
-    if (!response.ok) return;
-    const data = await response.json();
-    // Only load from file if local storage is empty
-    if (!state.eventos.length) {
-      state.eventos = data;
-      localStorage.setItem(STORAGE_KEYS.eventos, JSON.stringify(state.eventos));
-    }
+    const data = await sbFetch("eventos?order=fecha.asc", { prefer: "" });
+    state.eventos = data.map((e) => ({
+      id: e.id,
+      titulo: e.titulo || "",
+      fecha: e.fecha || "",
+      hora: e.hora || "",
+      lugar: e.lugar || "",
+      descripcion: e.descripcion || "",
+      imagen: e.imagen || "",
+      cupo: e.cupo || "",
+    }));
   } catch {
-    // No eventos.json yet, that's fine
+    // Si falla Supabase, usar los del localStorage
   }
 }
 
@@ -641,15 +653,28 @@ function addEvento() {
   localStorage.setItem(STORAGE_KEYS.eventos, JSON.stringify(state.eventos));
   renderEventos();
   clearEventoForm();
-  setStatus("Evento agregado. Exporta eventos.json y subilo a la carpeta data del repositorio.");
+  sbFetch("eventos", {
+    method: "POST",
+    body: JSON.stringify({
+      id: evento.id, titulo: evento.titulo, fecha: evento.fecha,
+      hora: evento.hora, lugar: evento.lugar, descripcion: evento.descripcion,
+      imagen: evento.imagen, cupo: evento.cupo
+    })
+  }).then(() => setStatus("Evento agregado y guardado en Supabase."))
+    .catch(() => setStatus("Evento agregado localmente. Error al sincronizar con Supabase."));
 }
 
 function deleteEvento(index) {
   if (!confirm("Eliminar este evento?")) return;
+  const eventoId = state.eventos[index]?.id;
   state.eventos.splice(index, 1);
   localStorage.setItem(STORAGE_KEYS.eventos, JSON.stringify(state.eventos));
   renderEventos();
-  setStatus("Evento eliminado. Exporta eventos.json para guardar los cambios.");
+  if (eventoId) {
+    sbFetch(`eventos?id=eq.${encodeURIComponent(eventoId)}`, { method: "DELETE", prefer: "" })
+      .then(() => setStatus("Evento eliminado de Supabase."))
+      .catch(() => setStatus("Evento eliminado localmente. Error al sincronizar con Supabase."));
+  }
 }
 
 function clearEventoForm() {
@@ -725,7 +750,15 @@ function renderAdminBookList() {
   container.querySelectorAll(".admin-estado-select").forEach((sel) => {
     sel.addEventListener("change", () => {
       const book = state.books.find((b) => b.id === sel.dataset.id);
-      if (book) { book.estado = sel.value; saveBooks(); renderCatalog(); }
+      if (book) {
+        book.estado = sel.value;
+        saveBooks();
+        renderCatalog();
+        sbFetch(`libros?id=eq.${encodeURIComponent(book.id)}`, {
+          method: "PATCH",
+          body: JSON.stringify({ estado: book.estado })
+        }).catch(() => {});
+      }
     });
   });
   container.querySelectorAll(".admin-edit-btn").forEach((btn) => {
@@ -819,7 +852,9 @@ function deleteBook(id) {
   state.books = state.books.filter((b) => b.id !== id);
   saveBooks();
   renderAll();
-  setStatus("Libro eliminado. Exportá catalogo.json para publicar los cambios.");
+  sbFetch(`libros?id=eq.${encodeURIComponent(id)}`, { method: "DELETE", prefer: "" })
+    .then(() => setStatus("Libro eliminado de Supabase."))
+    .catch(() => setStatus("Libro eliminado localmente. Error al sincronizar con Supabase."));
 }
 
 
@@ -1123,7 +1158,17 @@ function addManualBook() {
   saveBooks();
   renderAll();
   clearManualForm();
-  setStatus("Libro agregado. Para publicarlo, usa Exportar catalogo.json y subilo a GitHub.");
+  sbFetch("libros", {
+    method: "POST",
+    body: JSON.stringify({
+      id: book.id, titulo: book.titulo, autor: book.autor,
+      categoria: book.categoria, anio: book.anio, isbn: book.isbn,
+      estado: book.estado, imagen: book.imagen, sinopsis: book.sinopsis,
+      notas: book.notas, estante: book.estante,
+      destacado: !!book.destacado, nuevo: false, recomendado: false, semana: false
+    })
+  }).then(() => setStatus("Libro agregado y guardado en Supabase."))
+    .catch(() => setStatus("Libro agregado localmente. Error al sincronizar con Supabase."));
 }
 
 function clearManualForm() {
