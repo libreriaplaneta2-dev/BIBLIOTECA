@@ -480,14 +480,9 @@ function renderLoans() {
 
 async function importExcel() {
   const file = $("#excelFile").files[0];
-  if (!file) {
-    setStatus("Selecciona un archivo Excel primero.");
-    return;
-  }
-  if (!window.XLSX) {
-    setStatus("No se pudo cargar el lector de Excel. Revisa la conexion a internet y recarga la pagina.");
-    return;
-  }
+  if (!file) { setStatus("Selecciona un archivo Excel primero."); return; }
+  if (!window.XLSX) { setStatus("No se pudo cargar el lector de Excel. Recargá la pagina."); return; }
+
   const buffer = await file.arrayBuffer();
   const workbook = XLSX.read(buffer);
   const sheet = workbook.Sheets[workbook.SheetNames[0]];
@@ -495,7 +490,52 @@ async function importExcel() {
   state.books = normalizeBooks(rows);
   saveBooks();
   renderAll();
-  setStatus(`Importados ${state.books.length} libros. Ahora podes exportar catalogo.json.`);
+  setStatus(`${state.books.length} libros importados. Subiendo a Supabase...`);
+
+  // Upload to Supabase in batches of 50
+  const BATCH = 50;
+  let uploaded = 0;
+  let errors = 0;
+  const supabaseRows = state.books.map((b) => ({
+    id: b.id,
+    titulo: b.titulo || "",
+    autor: b.autor || "",
+    categoria: b.categoria || "",
+    anio: b.anio || "",
+    isbn: b.isbn || "",
+    estado: b.estado || "Disponible",
+    imagen: b.imagen || "",
+    sinopsis: b.sinopsis || "",
+    notas: b.notas || "",
+    estante: b.estante || "",
+    tematica: b.tematica || "",
+    destacado: !!b.destacado,
+    nuevo: !!b.nuevo,
+    recomendado: !!b.recomendado,
+    semana: !!b.semana,
+  }));
+
+  for (let i = 0; i < supabaseRows.length; i += BATCH) {
+    const batch = supabaseRows.slice(i, i + BATCH);
+    try {
+      await sbFetch("libros", {
+        method: "POST",
+        body: JSON.stringify(batch),
+        headers: { "Prefer": "resolution=merge-duplicates,return=minimal" }
+      });
+      uploaded += batch.length;
+    } catch (e) {
+      errors += batch.length;
+      console.error("Error subiendo lote:", e);
+    }
+    setStatus(`Subiendo a Supabase: ${uploaded} de ${supabaseRows.length}...`);
+  }
+
+  if (errors === 0) {
+    setStatus(`✅ ${state.books.length} libros importados y guardados en Supabase correctamente.`);
+  } else {
+    setStatus(`⚠️ ${uploaded} libros subidos. ${errors} con error — revisá la consola.`);
+  }
 }
 
 
