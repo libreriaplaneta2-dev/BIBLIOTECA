@@ -212,24 +212,57 @@ function renderCatalog() {
 }
 
 function renderFeatured() {
-  const book = state.books.find((item) => item.destacado) || state.books[0];
-  if (!book) {
-    $("#featured").innerHTML = "";
-    return;
-  }
-  $("#featured").innerHTML = `
-    <article class="featured-card">
+  const container = $("#featured");
+  if (!container) return;
+
+  const sections = [
+    { key: "semana",      label: "📖 Libro de la semana",  cls: "feat-semana"      },
+    { key: "destacado",   label: "🌟 Destacado",            cls: "feat-destacado"   },
+    { key: "recomendado", label: "⭐ Recomendados",         cls: "feat-recomendado" },
+    { key: "nuevo",       label: "🆕 Nuevos ingresos",      cls: "feat-nuevo"       },
+  ];
+
+  let html = "";
+  sections.forEach(({ key, label, cls }) => {
+    const books = state.books.filter((b) => b[key]);
+    if (!books.length) return;
+    html += `<div class="feat-section">
+      <h3 class="feat-title ${cls}">${label}</h3>
+      <div class="feat-row">
+        ${books.map((book) => `
+          <article class="feat-card" data-feat-id="${escapeAttribute(book.id)}">
+            <div class="feat-cover">${coverImage(book)}</div>
+            <div class="feat-body">
+              <strong>${escapeHtml(book.titulo)}</strong>
+              <span class="meta">${escapeHtml(book.autor || "")}</span>
+            </div>
+          </article>`).join("")}
+      </div>
+    </div>`;
+  });
+
+  // Fallback: if no flags set, show first book as featured
+  if (!html && state.books.length) {
+    const book = state.books[0];
+    html = `<article class="featured-card">
       <div class="cover">${coverImage(book)}</div>
       <div>
-        <p class="tag">Libro destacado</p>
+        <p class="tag">Catalogo</p>
         <h2>${escapeHtml(book.titulo)}</h2>
-        <p class="meta">${escapeHtml(book.autor || "Autor sin cargar")}</p>
-        <p>${escapeHtml(book.sinopsis || book.notas || "Sinopsis pendiente de completar.")}</p>
+        <p class="meta">${escapeHtml(book.autor || "")}</p>
+        <p>${escapeHtml(book.sinopsis || "")}</p>
         <button data-feature-detail="${book.id}">Ver ficha</button>
       </div>
-    </article>
-  `;
-  $("[data-feature-detail]").addEventListener("click", () => openBook(book.id));
+    </article>`;
+  }
+
+  container.innerHTML = html;
+
+  $$(".feat-card").forEach((card) => {
+    card.addEventListener("click", () => openBook(card.dataset.featId));
+  });
+  const btn = $("[data-feature-detail]");
+  if (btn) btn.addEventListener("click", () => openBook(btn.dataset.featureDetail));
 }
 
 function renderStats(visible) {
